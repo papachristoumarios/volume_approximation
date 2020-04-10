@@ -4,7 +4,6 @@
 #' 
 #' @param P A convex polytope. It is an object from class (a) Hpolytope, (b) Vpolytope, (c) Zonotope, (d) intersection of two V-polytopes.
 #' @param T Optional. A \eqn{d\times d} rotation matrix.
-#' @param seed Optional. A fixed seed for the random linear map generator.
 #' 
 #' @return A list that contains the rotated polytope and the matrix \eqn{T} of the linear transformation.
 #'
@@ -28,10 +27,10 @@
 #' Z = gen_rand_zonotope(3,6)
 #' poly_matrix_list = rotate_polytope(Z)
 #' @export
-rotate_polytope <- function(P, T = NULL, seed = NULL){
+rotate_polytope <- function(P, T = NULL){
   
   #call rcpp rotating function
-  Mat = rotating(P, T, seed)
+  Mat = rotating(P, T)
   
   n = P$dimension
   m=dim(Mat)[2]-n
@@ -44,7 +43,7 @@ rotate_polytope <- function(P, T = NULL, seed = NULL){
   
   # remove first column
   A = Mat[,-c(1)]
-  
+  #A = Mat[,-c(1)]
   type = P$type
   if (type == 2) {
     PP = Vpolytope$new(A)
