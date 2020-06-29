@@ -41,6 +41,8 @@ struct HamiltonianMonteCarloWalk
     typedef ZonoIntersectHPoly <zonotope, Hpolytope> ZonoHPoly;
     typedef Ball<Point> BallType;
     typedef BallIntersectPolytope<Polytope,BallType> BallPolytope;
+    typedef std::vector<func> funcs;
+    typedef std::vector<Polytope*> bounds;
 
     template <typename GenericPolytope>
     Walk(GenericPolytope const& P,
@@ -76,6 +78,10 @@ struct HamiltonianMonteCarloWalk
       // TODO implement
     }
 
+    inline NT hamiltonian(Point const& pos, Point const& vel) {
+      return f(pos) + 0.5 * vel.dot(vel);
+    }
+
 private:
 
   template<typename GenericPolytope>
@@ -86,6 +92,23 @@ private:
     // TODO Implement
 
   }
+
+  NT eta;
+  NT L, m, kappa;
+  NT delta, epsilon;
+  Solver &solver;
+  unsigned int dim;
+
+  // xs[0] contains position xs[1] contains velocity
+  pts xs;
+
+  // References to xs
+  Point &x, &v;
+  // Proposal points
+  Point x_tilde, v_tilde;
+
+  // Contains K x R^d
+  bounds Ks;
 
 };
 
