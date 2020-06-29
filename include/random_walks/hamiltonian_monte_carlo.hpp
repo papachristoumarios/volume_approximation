@@ -110,6 +110,11 @@ private:
   // Contains K x R^d
   bounds Ks;
 
+  // Function oracles Fs[0] contains grad_K = x
+  // Fs[1] contains - grad f(x)
+  funcs Fs;
+  std::function<NT(Point)> &f; // Potential energy
+
 };
 
 };
