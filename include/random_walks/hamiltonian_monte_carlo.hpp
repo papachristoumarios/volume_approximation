@@ -123,7 +123,7 @@ private:
 
     // Create boundaries for K and U
     // Boundary for K is given in the constructor
-    Ks.push_back(boundary);
+    Ks.push_back(&P);
 
     // Support of kinetic energy is R^d
     Ks.push_back(NULL);
