@@ -15,52 +15,114 @@
 #include "generators/boost_random_number_generator.hpp"
 #include "random_walks/gaussian_helpers.hpp"
 
-struct HamiltonianMonteCarloWalk
-{
-  struct parameters {
-    NT L;
-    NT m;
-    NT kappa;
-    NT epsilon;
-  };
-
-  parameters param;
+struct HamiltonianMonteCarloWalk {
 
   template
   <
-      typename Polytope,
-      typename RandomNumberGenerator,
-      typename Solver,
-      typename func
+    typename NT
   >
+  struct parameters {
+    NT L = NT(1); // smoothness constant
+    NT m = NT(1); // strong-convexity constant
+    NT epsilon = NT(1e-4); // tolerance in mixing
+    NT eta = NT(0); // step size
+    NT kappa = NT(1); // condition number
+  };
 
+  template
+  <
+    typename Point,
+    class Polytope,
+    class Solver,
+    class RandomNumberGenerator
+  >
   struct Walk {
 
-    typedef typename Polytope::PointType Point;
+    typedef std::vector<Point> pts;
     typedef typename Point::FT NT;
-    typedef HPolytope<Point> Hpolytope;
-    typedef Zonotope<Point> zonotope;
-    typedef ZonoIntersectHPoly <zonotope, Hpolytope> ZonoHPoly;
-    typedef Ball<Point> BallType;
-    typedef BallIntersectPolytope<Polytope,BallType> BallPolytope;
+    typedef std::function <Point(pts, NT)> func;
     typedef std::vector<func> funcs;
     typedef std::vector<Polytope*> bounds;
 
+    parameters<NT> params;
 
-    template <typename GenericPolytope>
-    Walk(GenericPolytope const& P,
-         Point const& p,
-         RandomNumberGenerator &rng,
-         parameters const& params)
+    // Numerical ODE solver
+    Solver *solver;
+
+    unsigned int dim;
+
+    // xs[0] contains position xs[1] contains velocity
+    pts xs;
+
+    // References to xs
+    Point x, v;
+    // Proposal points
+    Point x_tilde, v_tilde;
+
+    // Minimizer of f(x)
+    Point x_min;
+
+    // Contains K x R^d
+    bounds Ks;
+
+    // Function oracles Fs[0] contains grad_K = x
+    // Fs[1] contains - grad f(x)
+    funcs Fs;
+    std::function<NT(Point)> f;
+
+    Walk(
+      func neg_grad_f,
+      std::function<NT(Point)>
+      density_exponent,
+      Point initial,
+      parameters<NT> param,
+      Polytope *boundary=NULL)
     {
-       initialize(params);
+      initialize(neg_grad_f, density_exponent, initial, param, boundary);
     }
 
-    template <typename GenericPolytope>
-    inline void apply(GenericPolytope const& P,
-                      Point &p,
-                      unsigned int const& walk_length,
-                      RandomNumberGenerator &rng)
+    void initialize(
+      func neg_grad_f,
+      std::function<NT(Point)>
+      density_exponent,
+      Point initial,
+      parameters<NT> param,
+      Polytope *boundary=NULL)
+    {
+      // ODE related-stuff
+      params = param;
+      params.kappa = params.L / params.m;
+      params.eta = 1.0 /
+        sqrt(20 * params.L);
+
+      // Define Kinetic and Potential Energy gradient updates
+      // Kinetic energy gradient grad_K = v
+      func temp_grad_K = [](pts xs, NT t) { return xs[1]; };
+      Fs.push_back(temp_grad_K);
+      Fs.push_back(neg_grad_f);
+
+      // Define exp(-f(x)) where f(x) is convex
+      f = density_exponent;
+
+      // Create boundaries for K and U
+      // Boundary for K is given in the constructor
+      Ks.push_back(boundary);
+
+      // Support of kinetic energy is R^d
+      Ks.push_back(NULL);
+
+      // Starting point is provided from outside
+      x = initial;
+
+      dim = initial.dimension();
+
+      solver = new Solver(0, params.eta, pts{initial, initial}, Fs, Ks);
+
+    };
+
+    inline void apply(
+      RandomNumberGenerator &rng,
+      int walk_length=1)
     {
       // Pick a random velocity
       v = GetDirection<Point>::apply(dim, rng, false);
@@ -88,76 +150,10 @@ struct HamiltonianMonteCarloWalk
       }
     }
 
-    inline void update_eta(NT eta_) {
-      eta = eta_;
-    }
-
-    inline NT hamiltonian(Point const& pos, Point const& vel) {
+    NT hamiltonian(Point &pos, Point &vel) const {
       return f(pos) + 0.5 * vel.dot(vel);
     }
-
-private:
-
-  template<typename GenericPolytope>
-  inline void initialize(GenericPolytope const& P,
-                         Point const& p,
-                         RandomNumberGenerator &rng,
-                         func neg_grad_f,
-                         func neg_logprob,
-                         parameters const& params)
-  {
-    param.L = params.L;
-    param.m = params.m;
-    param.kappa = params.L / params.m;
-    param.epsilon = params.epsilon;
-    param.delta = params.delta;
-
-    eta = 1.0 / sqrt(2000 * L * p.dimension() * log(param.kappa / param.epsilon));
-
-    func temp_grad_K = [](pts xs, NT t) { return xs[1]; };
-    Fs.push_back(temp_grad_K);
-    Fs.push_back(neg_grad_f);
-
-    // Define exp(-f(x)) where f(x) is convex
-    f = neg_logprob;
-
-    // Create boundaries for K and U
-    // Boundary for K is given in the constructor
-    Ks.push_back(&P);
-
-    // Support of kinetic energy is R^d
-    Ks.push_back(NULL);
-
-    // Starting point is provided from outside
-    x = p;
-
-    dim = initial.dimension();
-
-    solver = new Solver(0, eta, 2, initial.dimension(), Fs, Ks);
-  }
-
-
-  NT eta;
-  unsigned int dim;
-
-  // References to xs
-  Point x, v;
-
-  // Proposal points
-  Point x_tilde, v_tilde;
-
-  // Contains K x R^d
-  bounds Ks;
-
-  // Function oracles Fs[0] contains grad_K = x
-  // Fs[1] contains - grad f(x)
-  funcs Fs;
-  std::function<NT(Point)> f; // Potential energy
-
-  Solver *solver;
-
-};
-
+  };
 };
 
 #endif // HAMILTONIAN_MONTE_CARLO_HPP
