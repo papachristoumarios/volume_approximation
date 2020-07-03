@@ -70,7 +70,7 @@ struct HamiltonianMonteCarloWalk {
     std::function<NT(Point)> f;
 
     Walk(Polytope &P,
-      Point const& p,
+      Point &p,
       func neg_grad_f,
       std::function<NT(Point)>
       density_exponent,
