@@ -1,3 +1,13 @@
+// VolEsti (volume computation and sampling library)
+
+// Copyright (c) 2012-2020 Vissarion Fisikopoulos
+// Copyright (c) 2018-2020 Apostolos Chalkis
+// Copyright (c) 2020-2020 Marios Papachristou
+
+// Contributed and/or modified by Marios Papachristou, as part of Google Summer of Code 2020 program.
+
+// Licensed under GNU LGPL.3, see LICENCE file
+
 #include <iostream>
 #include <cmath>
 #include <functional>
@@ -20,50 +30,21 @@
 #include "volume/volume_cooling_balls.hpp"
 #include "generators/known_polytope_generators.h"
 
-// template <typename NT>
-// void test_hmc_isotropic_gaussian(){
-//     typedef Cartesian<NT>    Kernel;
-//     typedef typename Kernel::Point    Point;
-//     typedef std::vector<Point> pts;
-//     typedef std::function<Point(pts, NT)> func;
-//     typedef std::vector<func> funcs;
-//     typedef boost::mt19937    RNGType;
-//     typedef HPolytope<Point> Hpolytope;
-//     typedef EulerODESolver<Point, NT, Hpolytope> Solver;
-//     typedef BoostRandomNumberGenerator<RNGType, NT> RandomNumberGenerator;
-//
-//     RandomNumberGenerator rng(1);
-//
-//     // Isotropic gaussian
-//     NT L = 3;
-//     NT m = L;
-//     func neg_grad_f = [](pts x, NT t) { return (-1.0 / (2 * 3 * 3)) * x[0]; };
-//     std::function<NT(Point)> f = [](Point x) { return (0.5 / (2 * 3 * 3)) * x.dot(x); };
-//     unsigned int dim = 2;
-//     Point x0 = GetDirection<Point>::apply(dim, rng, false);
-//     x0 = (1.0 / sqrt(3)) * x0;
-//
-//     HamiltonianMonteCarloWalk::Walk<Point, Hpolytope, Solver, RandomNumberGenerator> hmc(neg_grad_f, f, x0, m, L, 0.1, 0.01, NULL);
-//
-//     hmc.mix();
-//
-//     for (int i = 0; i < 1000; i++) {
-//       Point p = hmc.apply();
-//       for (int j = 0; j < p.dimension(); j++) std::cout << p[j] << " ";
-//       std::cout << std::endl;
-//     }
-//
-// }
+template <typename Point>
+Point all_ones(int dim) {
+  Point p(dim);
+  for (int i = 0; i < dim; i++) p.set_coord(i, 1.0);
+  return p;
+}
 
 template <typename NT>
-void test_hmc_isotropic_gaussian_leapfrog(){
+void test_hmc(){
     typedef Cartesian<NT>    Kernel;
     typedef typename Kernel::Point    Point;
     typedef std::vector<Point> pts;
     typedef std::function<Point(pts, NT)> func;
     typedef std::vector<func> funcs;
     typedef HPolytope<Point> Hpolytope;
-    typedef LeapfrogODESolver<Point, NT, Hpolytope> Solver;
     typedef BoostRandomNumberGenerator<boost::mt19937, NT> RandomNumberGenerator;
 
     RandomNumberGenerator rng(1);
@@ -71,13 +52,23 @@ void test_hmc_isotropic_gaussian_leapfrog(){
 
     HamiltonianMonteCarloWalk::parameters<NT> params;
 
-    func neg_grad_f = [](pts x, NT t) { return (-1.0) * x[0]; };
-    std::function<NT(Point)> f = [](Point x) { return 0.5 * x.dot(x); };
+    func neg_grad_f = [](pts x, NT t) {
+      Point p = all_ones<Point>(x[0].dimension());
+      Point z = (-1.0) * x[0];
+      z = z - p;
+      return z;
+     };
+    std::function<NT(Point)> f = [](Point x) {
+      return 0.5 * x.dot(x) + x.sum();
+    };
     unsigned int dim = 1;
     Hpolytope P = gen_cube<Hpolytope>(dim, false);
     Point x0 = GetDirection<Point>::apply(dim, rng, false);
+    Point z = all_ones<Point>(dim);
+    z = (-0.5) * z;
+    x0 = x0 - z;
 
-    HamiltonianMonteCarloWalk::Walk<Point, Hpolytope, Solver, RandomNumberGenerator> hmc(neg_grad_f, f, x0, params);
+    HamiltonianMonteCarloWalk::Walk<Point, Hpolytope, RandomNumberGenerator> hmc(neg_grad_f, f, x0, params, &P);
 
     for (int i = 0; i < 20000; i++) {
       hmc.apply(rng);
@@ -85,43 +76,10 @@ void test_hmc_isotropic_gaussian_leapfrog(){
     }
 
 }
-//
-// template <typename NT>
-// void test_hmc_isotropic_truncated_gaussian(){
-//     typedef Cartesian<NT>    Kernel;
-//     typedef typename Kernel::Point    Point;
-//     typedef std::vector<Point> pts;
-//     typedef std::function<Point(pts, NT)> func;
-//     typedef std::vector<func> funcs;
-//     typedef boost::mt19937    RNGType;
-//     typedef HPolytope<Point> Hpolytope;
-//     typedef LeapfrogODESolver<Point, NT, Hpolytope> Solver;
-//     // Isotropic gaussian
-//     NT L = 1;
-//     NT m = L;
-//     func neg_grad_f = [](pts x, NT t) { return (-1.0) * x[0]; };
-//     std::function<NT(Point)> f = [](Point x) { return (0.5) * x.dot(x); };
-//     unsigned int dim = 2;
-//     Hpolytope P = gen_cube<Hpolytope>(dim, false);
-//     Point x0(dim);
-//
-//     HamiltonianMonteCarloWalk::Walk<Point, NT, RNGType, Hpolytope, Solver> hmc(neg_grad_f, f, x0, L, m, 0.01, 0.001, &P);
-//
-//     hmc.applys(1000);
-//
-//     for (int i = 0; i < 1000; i++) {
-//       Point p = hmc.apply();
-//       for (int j = 0; j < p.dimension(); j++) std::cout << p[j] << " ";
-//       std::cout << std::endl;
-//     }
-//
-// }
 
 template <typename NT>
 void call_test_hmc() {
-  // test_hmc_isotropic_gaussian<double>();
-  // test_hmc_isotropic_truncated_gaussian<double>();
-  test_hmc_isotropic_gaussian_leapfrog<double>();
+  test_hmc<double>();
 }
 
 TEST_CASE("hmc") {

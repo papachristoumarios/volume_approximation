@@ -14,6 +14,7 @@
 
 #include "generators/boost_random_number_generator.hpp"
 #include "random_walks/gaussian_helpers.hpp"
+#include "ode_solvers/ode_solvers.hpp"
 
 struct HamiltonianMonteCarloWalk {
 
@@ -33,7 +34,6 @@ struct HamiltonianMonteCarloWalk {
   <
     typename Point,
     class Polytope,
-    class Solver,
     class RandomNumberGenerator
   >
   struct Walk {
@@ -44,30 +44,29 @@ struct HamiltonianMonteCarloWalk {
     typedef std::vector<func> funcs;
     typedef std::vector<Polytope*> bounds;
 
+    // Use Leapfrog ODE solver (other solvers can be used as well)
+    typedef LeapfrogODESolver<Point, NT, Polytope> Solver;
+
+    // Hyperparameters of the sampler
     parameters<NT> params;
 
     // Numerical ODE solver
     Solver *solver;
 
+    // Dimension
     unsigned int dim;
-
-    // xs[0] contains position xs[1] contains velocity
-    pts xs;
 
     // References to xs
     Point x, v;
+
     // Proposal points
     Point x_tilde, v_tilde;
-
-    // Minimizer of f(x)
-    Point x_min;
-
-    // Contains K x R^d
-    bounds Ks;
 
     // Function oracles Fs[0] contains grad_K = x
     // Fs[1] contains - grad f(x)
     funcs Fs;
+
+    // Density exponent
     std::function<NT(Point)> f;
 
     Walk(
@@ -104,19 +103,12 @@ struct HamiltonianMonteCarloWalk {
       // Define exp(-f(x)) where f(x) is convex
       f = density_exponent;
 
-      // Create boundaries for K and U
-      // Boundary for K is given in the constructor
-      Ks.push_back(boundary);
-
-      // Support of kinetic energy is R^d
-      Ks.push_back(NULL);
-
       // Starting point is provided from outside
       x = initial;
-
       dim = initial.dimension();
 
-      solver = new Solver(0, params.eta, pts{initial, initial}, Fs, Ks);
+      // Initialize solver
+      solver = new Solver(0, params.eta, pts{initial, initial}, Fs, bounds{boundary, NULL});
 
     };
 
@@ -156,4 +148,4 @@ struct HamiltonianMonteCarloWalk {
   };
 };
 
-#endif // HAMILTONIAN_MONTE_CARLO_HPP
+#endif // HAMILTONIAN_MONTE_CARLO_WALK_HPP

@@ -96,6 +96,10 @@ public:
         return coeffs.data();
     }
 
+    FT sum() {
+        return coeffs.sum();
+    }
+
     void operator+= (const point& p)
     {
         coeffs += p.getCoefficients();
