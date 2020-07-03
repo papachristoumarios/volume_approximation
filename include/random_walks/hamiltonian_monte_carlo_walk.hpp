@@ -8,8 +8,8 @@
 
 // Licensed under GNU LGPL.3, see LICENCE file
 
-#ifndef HAMILTONIAN_MONTE_CARLO_HPP
-#define HAMILTONIAN_MONTE_CARLO_HPP
+#ifndef HAMILTONIAN_MONTE_CARLO_WALK_HPP
+#define HAMILTONIAN_MONTE_CARLO_WALK_HPP
 
 
 #include "generators/boost_random_number_generator.hpp"
