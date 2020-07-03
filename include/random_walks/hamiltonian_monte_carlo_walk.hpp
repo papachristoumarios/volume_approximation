@@ -69,24 +69,22 @@ struct HamiltonianMonteCarloWalk {
     // Density exponent
     std::function<NT(Point)> f;
 
-    Walk(
+    Walk(Polytope &P,
+      Point const& p,
       func neg_grad_f,
       std::function<NT(Point)>
       density_exponent,
-      Point initial,
-      parameters<NT> param,
-      Polytope *boundary=NULL)
+      parameters<NT> &param)
     {
-      initialize(neg_grad_f, density_exponent, initial, param, boundary);
+      initialize(P, p, neg_grad_f, density_exponent, param);
     }
 
-    void initialize(
+    void initialize(Polytope &P,
+      Point &p,
       func neg_grad_f,
       std::function<NT(Point)>
       density_exponent,
-      Point initial,
-      parameters<NT> param,
-      Polytope *boundary=NULL)
+      parameters<NT> &param)
     {
       // ODE related-stuff
       params = param;
@@ -104,13 +102,14 @@ struct HamiltonianMonteCarloWalk {
       f = density_exponent;
 
       // Starting point is provided from outside
-      x = initial;
-      dim = initial.dimension();
+      x = p;
+      dim = p.dimension();
 
       // Initialize solver
-      solver = new Solver(0, params.eta, pts{initial, initial}, Fs, bounds{boundary, NULL});
+      solver = new Solver(0, params.eta, pts{x, x}, Fs, bounds{&P, NULL});
 
     };
+
 
     inline void apply(
       RandomNumberGenerator &rng,
@@ -142,7 +141,7 @@ struct HamiltonianMonteCarloWalk {
       }
     }
 
-    NT hamiltonian(Point &pos, Point &vel) const {
+    inline NT hamiltonian(Point &pos, Point &vel) const {
       return f(pos) + 0.5 * vel.dot(vel);
     }
   };

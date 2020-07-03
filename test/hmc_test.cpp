@@ -68,11 +68,11 @@ void test_hmc(){
     z = (-0.5) * z;
     x0 = x0 - z;
 
-    HamiltonianMonteCarloWalk::Walk<Point, Hpolytope, RandomNumberGenerator> hmc(neg_grad_f, f, x0, params, &P);
+    HamiltonianMonteCarloWalk::Walk<Point, Hpolytope, RandomNumberGenerator> hmc(P, x0, neg_grad_f, f, params);
 
     for (int i = 0; i < 20000; i++) {
       hmc.apply(rng);
-      if (i > 2000) std::cout << hmc.x.getCoefficients().transpose() << std::endl;
+      std::cout << hmc.x.getCoefficients().transpose() << std::endl;
     }
 
 }
