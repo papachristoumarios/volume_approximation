@@ -10,19 +10,13 @@
 
 #include <iostream>
 #include <cmath>
-#include <cstdlib>
 #include <functional>
 #include <vector>
-#include <cstdlib>
-#include <unistd.h>
-#include <pthread.h>
-#include <mps/mps.h>
-#include <gmp.h>
 
-#include "newton_raphson.hpp"
-#include "mp_solve_wrapper.hpp"
+#include "nlp_hpolyoracles.hpp"
+#include "nlp_vpolyoracles.hpp"
 
-#ifndef ROOT_FINDERS_HPP
-#define ROOT_FINDERS_HPP
+#ifndef NLP_POLYORACLES_HPP
+#define NLP_POLYORACLES_HPP
 
 #endif
