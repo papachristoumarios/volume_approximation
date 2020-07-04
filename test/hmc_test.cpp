@@ -68,7 +68,7 @@ void test_hmc(){
     z = (-0.5) * z;
     x0 = x0 - z;
 
-    HamiltonianMonteCarloWalk::Walk<Point, Hpolytope, RandomNumberGenerator> hmc(P, x0, neg_grad_f, f, params);
+    HamiltonianMonteCarloWalk::Walk<Point, Hpolytope, RandomNumberGenerator> hmc(&P, x0, neg_grad_f, f, params);
 
     for (int i = 0; i < 20000; i++) {
       hmc.apply(rng);
@@ -78,10 +78,61 @@ void test_hmc(){
 }
 
 template <typename NT>
+void test_underdamped_langevin(){
+    typedef Cartesian<NT>    Kernel;
+    typedef typename Kernel::Point    Point;
+    typedef std::vector<Point> pts;
+    typedef std::function<Point(pts, NT)> func;
+    typedef std::vector<func> funcs;
+    typedef HPolytope<Point> Hpolytope;
+    typedef BoostRandomNumberGenerator<boost::mt19937, NT> RandomNumberGenerator;
+
+    RandomNumberGenerator rng(1);
+
+
+    UnderdampedLangevinWalk::parameters<NT> params;
+
+    func neg_grad_f = [](pts x, NT t) {
+      Point p = all_ones<Point>(x[0].dimension());
+      Point z = (-1.0) * x[0];
+      z = z - p;
+      return z;
+     };
+    std::function<NT(Point)> f = [](Point x) {
+      return 0.5 * x.dot(x) + x.sum();
+    };
+    unsigned int dim = 1;
+    Hpolytope P = gen_cube<Hpolytope>(dim, false);
+    Point x0 = GetDirection<Point>::apply(dim, rng, false);
+    Point v0 = GetDirection<Point>::apply(dim, rng, false);
+    Point z = all_ones<Point>(dim);
+    z = (-0.5) * z;
+    x0 = x0 - z;
+
+    UnderdampedLangevinWalk::Walk<Point, Hpolytope, RandomNumberGenerator>
+      uld(&P, x0, v0, neg_grad_f, f, params);
+
+    for (int i = 0; i < 10; i++) {
+      uld.apply();
+      std::cout << uld.x.getCoefficients().transpose() << std::endl;
+    }
+
+}
+
+template <typename NT>
 void call_test_hmc() {
   test_hmc<double>();
 }
 
+template <typename NT>
+void call_test_langevin() {
+  test_underdamped_langevin<double>();
+}
+
 TEST_CASE("hmc") {
   call_test_hmc<double>();
+}
+
+TEST_CASE("langevin") {
+  call_test_langevin<double>();
 }
