@@ -488,7 +488,32 @@ public:
         v += -2 * v.dot(A.row(facet)) * A.row(facet);
     }
 
-    void free_them_all() {}
+    NT log_barrier(Point &x, NT t = NT(100)) const {
+      int m = num_of_hyperplanes();
+      NT total = NT(0);
+      NT slack;
+
+      for (int i = 0; i < m; i++) {
+        slack = b(i) - x.dot(A.row(i));
+        total += log(slack);
+      }
+
+      return total / t;
+    }
+
+    Point grad_log_barrier(Point &x, NT t = NT(100)) {
+      int m = num_of_hyperplanes();
+      NT slack;
+
+      Point total(x.dimension());
+
+      for (int i = 0; i < m; i++) {
+        slack = b(i) - x.dot(A.row(i));
+        total = total + (1 / slack) * A.row(i);
+      }
+      total = (1.0 / t) * total;
+      return total;
+    }
 
     template <class bfunc, class NonLinearOracle>
     std::tuple<NT, Point, int> curve_intersect(
@@ -504,6 +529,8 @@ public:
         return intersection_oracle.apply(
           t_prev, t0, eta, A, b, *this, coeffs, phi, grad_phi, ignore_facet);
     }
+
+    void free_them_all() {}
 
 };
 

@@ -112,7 +112,7 @@ void test_underdamped_langevin(){
     UnderdampedLangevinWalk::Walk<Point, Hpolytope, RandomNumberGenerator>
       uld(&P, x0, v0, neg_grad_f, f, params);
 
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 20000; i++) {
       uld.apply();
       std::cout << uld.x.getCoefficients().transpose() << std::endl;
     }

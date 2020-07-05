@@ -160,7 +160,7 @@ struct UnderdampedLangevinWalk {
 
     };
 
-    inline void apply(int walk_length=1)
+    inline void apply(int walk_length=100)
     {
       solver->set_state(0, x);
       solver->set_state(1, v);
