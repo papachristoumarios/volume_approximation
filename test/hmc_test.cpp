@@ -30,6 +30,8 @@
 #include "volume/volume_cooling_balls.hpp"
 #include "generators/known_polytope_generators.h"
 
+#include "convex_bodies/barriers.h"
+
 template <typename Point>
 Point all_ones(int dim) {
   Point p(dim);
@@ -68,7 +70,7 @@ void test_hmc(){
     z = (-0.5) * z;
     x0 = x0 - z;
 
-    HamiltonianMonteCarloWalk::Walk<Point, Hpolytope, RandomNumberGenerator> hmc(&P, x0, neg_grad_f, f, params);
+    HamiltonianMonteCarloWalk::Walk<Point, Hpolytope, RandomNumberGenerator> hmc(NULL, x0, neg_grad_f, f, params);
 
     for (int i = 0; i < 20000; i++) {
       hmc.apply(rng);
@@ -110,7 +112,7 @@ void test_underdamped_langevin(){
     x0 = x0 - z;
 
     UnderdampedLangevinWalk::Walk<Point, Hpolytope, RandomNumberGenerator>
-      uld(&P, x0, v0, neg_grad_f, f, params);
+      uld(NULL, x0, v0, neg_grad_f, f, params);
 
     for (int i = 0; i < 20000; i++) {
       uld.apply();

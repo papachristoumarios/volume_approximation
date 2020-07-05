@@ -18,12 +18,14 @@ struct LogarithmicBarrierAugmenter {
 
     func f;
     Hpolytope &P;
+    bool enable;
 
-    LogarithmicBarrierObjective(func f_, Hpolytope P_) :
-      f(f_), P(P_) {}
+    LogarithmicBarrierObjective(func f_, Hpolytope P_, bool enable_) :
+      f(f_), P(P_), enable(enable_) {}
 
     NT operator() (Point &x) {
-      return f(x) + P.log_barrier(x);
+      if (enable) return f(x) + P.log_barrier(x);
+      else return f(x);
     }
 
   };
@@ -35,12 +37,14 @@ struct LogarithmicBarrierAugmenter {
 
     func f;
     Hpolytope &P;
+    bool enable;
 
-    LogarithmicBarrierGradient(func f_, Hpolytope P_) :
-      f(f_), P(P_) {}
+    LogarithmicBarrierGradient(func f_, Hpolytope P_, bool enable_) :
+      f(f_), P(P_), enable(enable_) {}
 
     Point operator() (Point &x) {
-      return f(x) + P.grad_log_barrier(x);
+      if (enable) return f(x) + P.grad_log_barrier(x);
+      else return f(x);
     }
 
   };
