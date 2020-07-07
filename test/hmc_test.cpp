@@ -56,12 +56,12 @@ void test_hmc(){
 
     func neg_grad_f = [](pts x, NT t) {
       Point p = all_ones<Point>(x[0].dimension());
-      Point z = (-1.0) * x[0];
+      Point z = (-2.0) * x[0];
       z = z - p;
       return z;
      };
     std::function<NT(Point)> f = [](Point x) {
-      return 0.5 * x.dot(x) + x.sum();
+      return x.dot(x) + x.sum();
     };
     unsigned int dim = 1;
     Hpolytope P = gen_cube<Hpolytope>(dim, false);
@@ -70,7 +70,7 @@ void test_hmc(){
     z = (-0.5) * z;
     x0 = x0 - z;
 
-    HamiltonianMonteCarloWalk::Walk<Point, Hpolytope, RandomNumberGenerator> hmc(NULL, x0, neg_grad_f, f, params);
+    HamiltonianMonteCarloWalk::Walk<Point, Hpolytope, RandomNumberGenerator> hmc(&P, x0, neg_grad_f, f, params);
 
     for (int i = 0; i < 20000; i++) {
       hmc.apply(rng);
@@ -96,12 +96,12 @@ void test_underdamped_langevin(){
 
     func neg_grad_f = [](pts x, NT t) {
       Point p = all_ones<Point>(x[0].dimension());
-      Point z = (-1.0) * x[0];
+      Point z = (-2.0) * x[0];
       z = z - p;
       return z;
      };
     std::function<NT(Point)> f = [](Point x) {
-      return 0.5 * x.dot(x) + x.sum();
+      return x.dot(x) + x.sum();
     };
     unsigned int dim = 1;
     Hpolytope P = gen_cube<Hpolytope>(dim, false);
