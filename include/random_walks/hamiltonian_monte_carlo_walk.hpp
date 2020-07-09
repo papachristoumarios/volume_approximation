@@ -113,13 +113,12 @@ struct HamiltonianMonteCarloWalk {
 
     inline void apply(
       RandomNumberGenerator &rng,
-      int walk_length=1)
+      int walk_length=1,
+      bool metropolis_filter=true)
     {
       // Pick a random velocity
       v = GetDirection<Point>::apply(dim, rng, false);
 
-      // Calculate initial Hamiltonian
-      NT H = hamiltonian(x, v);
       solver->set_state(0, x);
       solver->set_state(1, v);
 
@@ -128,15 +127,23 @@ struct HamiltonianMonteCarloWalk {
       x_tilde = solver->get_state(0);
       v_tilde = solver->get_state(1);
 
-      // Calculate new Hamiltonian
-      NT H_tilde = hamiltonian(x_tilde, v_tilde);
 
-      // Log-sum-exp trick
-      NT log_prob = H - H_tilde < 0 ? H - H_tilde : 0;
+      if (metropolis_filter) {
+        // Calculate initial Hamiltonian
+        NT H = hamiltonian(x, v);
 
-      // Decide to switch
-      NT u_logprob = log(rng.sample_urdist());
-      if (u_logprob < log_prob) {
+        // Calculate new Hamiltonian
+        NT H_tilde = hamiltonian(x_tilde, v_tilde);
+
+        // Log-sum-exp trick
+        NT log_prob = H - H_tilde < 0 ? H - H_tilde : 0;
+
+        // Decide to switch
+        NT u_logprob = log(rng.sample_urdist());
+        if (u_logprob < log_prob) {
+          x = x_tilde;
+        }
+      } else {
         x = x_tilde;
       }
     }

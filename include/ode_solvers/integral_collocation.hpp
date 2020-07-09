@@ -56,7 +56,8 @@ public:
   funcs Fs;
 
   // Basis functions
-  bfunc phi, grad_phi;
+  LagrangeBasis phi, grad_phi, integral_phi;
+
 
   bounds Ks;
 
@@ -73,25 +74,45 @@ public:
 
   MT A_phi;
 
+  unsigned int _order;
 
   int prev_facet = -1;
   Point prev_point;
 
-  CollocationODESolver(NT initial_time, NT step, pts initial_state, funcs oracles,
-    bounds boundaries,  coeffs c_coeffs) :
-    t(initial_time), xs(initial_state), Fs(oracles), eta(step), Ks(boundaries),
-     cs(c_coeffs) {
+  IntegralCollocationODESolver(NT initial_time, NT step, pts initial_state, funcs oracles,
+    bounds boundaries, unsigned int order_) :
+    t(initial_time), xs(initial_state), Fs(oracles), eta(step), Ks(boundaries) :
+    _order(order_) {
       dim = xs[0].dimension();
       initialize_matrices();
 
     };
 
   unsigned int order() const {
-    return cs.size();
+    return order_;
   }
 
   void initialize_matrices() {
+
+    // Determine Chebyshev nodes
+    NT temp_node;
+    for (int i = 0; i < order(); i++) {
+      temp_node = cos((2 * i - 1) / (2 * order()) * M_PI);
+      cs.push_back(temp_node);
+    }
+
+    phi = LagrangeBasis::LagrangePolynomial<Point>(cs, LagrangeBasis::BaseType.FUNCTION);
+    grad_phi = LagrangeBasis::LagrangePolynomial<Point>(cs, LagrangeBasis::BaseType.DERIVATIVE);
+    integral_phi = LagrangeBasis::LagrangePolynomial<Point>(cs, LagrangeBasis::BaseType.INTEGRAL);
+
     A_phi.resize(order(), order());
+
+    // Calculate integrals of Chebyshev nodes based on "Fast Polynomial Interpolation"
+    for (int i = 0; i < order(); i++) {
+      for (int j = 0; j < order(); j++) {
+        A_phi(i, j) = integral_phi(cs[j], 0, i, order());
+      }
+    }
 
 
   }
@@ -123,30 +144,59 @@ public:
   }
 };
 
-template <typename Point>
-class LagrangePolynomial {
 
-  typedef template Point::FT NT;
 
-  std::vector<Point> &coeffs;
-  int order;
 
-  LagrangePolynomial(std::vector<Point> coeffs_) {
-    coeffs = coeffs_;
-    order = (int) coeffs.size();
-  }
+class LagrangePolynomial : public LagrangeBasis {
 
-  NT operator() (NT t, NT t0, int j, NT ord) {
-    NT result = NT(1);
+  template <typename Point>
+  class Basis {
+    typedef template Point::FT NT;
 
-    for (int i = 0; i < order; i++) {
-      if (i != j) result *= (t - coeffs[i]) / (coeffs[j] - coeffs[i]);
+    std::vector<Point> &coeffs;
+    int order;
+    BasisType basis_type;
+
+    LagrangePolynomial(std::vector<Point> coeffs_, BasisType basis_type_) :
+      coeffs(coeffs_), order((int) order.size()), basis_type(basis_type_) {}
+
+    NT operator() (NT t, NT t0, int j, NT ord) {
+      NT result;
+      NT mult _den = NT(1);
+      NT mult_num = NT(1);
+
+      for (int i = 0; i < order; i++) {
+        if (i != j) {
+          mult_den *= (coeffs[j] - coeffs[i]);
+          mult_num *= (t - coeffs[i]);
+        }
+      }
+
+      switch(basis_type) {
+        case FUNCTION:
+          result = mult_num / mult_den;
+          break;
+        case DERIVATIVE:
+          result = NT(0);
+          for (int i = 0; i < order; i++) {
+            if (i != j) result += mult_num / (t - coeffs[i]);
+          }
+          result *= mult_den;
+          break;
+        case INTEGRAL:
+          result = NT(0);
+          // TODO add implementation
+      }
+
+      return result;
     }
+  };
 
-    return result;
-  }
-
-
+  enum BasisType {
+    DERIVATIVE,
+    FUNCTION,
+    INTEGRAL
+  };
 
 };
 
