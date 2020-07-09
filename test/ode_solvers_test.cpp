@@ -137,7 +137,6 @@ void test_leapfrog_constrained(){
 
     for (int i = 0; i < 1000; i++) {
       leapfrog_solver.step();
-      if (i > 500) leapfrog_solver.print_state();
       CHECK(leapfrog_solver.xs[0].dot(leapfrog_solver.xs[0]) < 1.1);
     }
 
@@ -426,6 +425,7 @@ void test_collocation_constrained(){
       CollocationODESolver<Point, NT, Hpolytope, bfunc>
       (0, 0.05, q, Fs, Ks, cs, phi, grad_phi);
     c_solver.steps(1000);
+
 
     NT err=0.1;
     NT target = 1.0;

@@ -81,7 +81,8 @@ class HPolyOracleVariables : public VariableSet {
 public:
   NT t, tb, eta;
 
-  HPolyOracleVariables(NT t_prev, NT tb_, NT eta_=-1): VariableSet(1, "t"), t(t_prev), tb(tb_), eta(eta_) {};
+  HPolyOracleVariables(NT t_prev, NT tb_, NT eta_=-1):
+    VariableSet(1, "t"), t(t_prev), tb(tb_), eta(eta_) {};
 
   void SetVariables(const VT& T) override {
     t = T(0);
@@ -109,7 +110,8 @@ class HPolyOracleCost : public CostTerm {
 public:
   std::string method;
 
-  HPolyOracleCost(std::string method_) : CostTerm("h_poly_cost"), method(method_) {};
+  HPolyOracleCost(std::string method_) :
+    CostTerm("h_poly_cost"), method(method_) {};
 
   NT GetCost() const override {
     VectorXd T = GetVariables()->GetComponent("t")->GetValues();
@@ -138,10 +140,20 @@ public:
   int m, M;
   std::string method;
   int index;
+  int ignore_facet;
 
-  HPolyOracleFeasibility(MT &C_, VT &b_, NT t0_, bfunc basis, bfunc basis_grad, std::string method_, int i) :
-    C(C_), b(b_), t0(t0_), phi(basis), grad_phi(basis_grad), ConstraintSet(C_.rows(), "h_poly_feasibility"),
-    method(method_), index(i) {
+  HPolyOracleFeasibility(
+    MT &C_,
+    VT &b_,
+    NT t0_,
+    bfunc basis,
+    bfunc basis_grad,
+    std::string method_,
+    int i,
+    int ignore_facet_=-1) :
+    C(C_), b(b_), t0(t0_), phi(basis), grad_phi(basis_grad),
+    ConstraintSet(C_.rows(), "h_poly_feasibility"),
+    method(method_), index(i), ignore_facet(ignore_facet_) {
       m = C_.rows();
       M = C_.cols();
     };
@@ -156,6 +168,11 @@ public:
       else {
         bounds.at(i) = Bounds((NT) (-inf), b(i));
       }
+
+      if (i == ignore_facet) {
+        bounds.at(i) = Bounds((NT) (-inf), (NT) (inf));
+      }
+
     }
     return bounds;
   }
@@ -251,7 +268,7 @@ struct IpoptHPolyoracle {
           hpolyoraclecost (new HPolyOracleCost<VT, NT>(solution));
         std::shared_ptr<HPolyOracleFeasibility<MT, VT, NT, bfunc>>
           hpolyoraclefeasibility (new HPolyOracleFeasibility<MT, VT, NT, bfunc>
-            (C, b, t0, phi, grad_phi, "max_pos", 0));
+            (C, b, t0, phi, grad_phi, "max_pos", 0, ignore_facet));
 
         nlp.AddVariableSet  (hpolyoraclevariables);
         nlp.AddCostSet      (hpolyoraclecost);
@@ -512,16 +529,14 @@ struct NewtonRaphsonHPolyoracle {
         if (std::abs(t - t_prev) < 1e-6 && t > t0) {
           // Add root (as t) and facet
 
-
           Point p = Point(coeffs[0].dimension());
 
           for (unsigned int j = 0; j < coeffs.size(); j++) {
             p += coeffs[j] * phi(t, t0, j, coeffs.size());
           }
 
-          // TODO Keep smallest positive root
-          if (P.is_in(p) && t < std::get<0>(result)) result =  std::make_tuple(t, p, i);
-
+          if (P.is_in(p) && t < std::get<0>(result))
+            result =  std::make_tuple(t, p, i);
 
         }
 

@@ -44,7 +44,7 @@ public:
 
   NT eta;
   NT t, t_prev, dt;
-  const NT tol = 1e-6;
+  const NT tol = 1e-3;
 
   // If set to true the solver assumes linearity of the field
   // Otherwise it approximates the constant vector with Euler method
@@ -85,6 +85,9 @@ public:
   VT Ar, Av;
 
   NontLinearOracle oracle;
+
+  int prev_facet = -1;
+  Point prev_point;
 
   CollocationODESolver(NT initial_time, NT step, pts initial_state, funcs oracles,
     bounds boundaries,  coeffs c_coeffs, bfunc basis, bfunc grad_basis) :
@@ -159,9 +162,7 @@ public:
             xs[i] += y;
 
             // Keep grads for matrix B
-            for (unsigned int j = 0; j < xs[i].dimension(); j++) {
-              Bs[i].row(ord-1) = y.getCoefficients().transpose();
-            }
+            Bs[i].row(ord-1) = y.getCoefficients().transpose();
 
             // Construct matrix A that contains the gradients of the basis functions
             if (!precompute || (precompute && !precompute_flag)) {
@@ -189,6 +190,38 @@ public:
       }
     }
 
+    if (!exact) {
+      for (int r = 0; r < (int) (eta / tol); r++) {
+        for (unsigned int ord = 1; ord < order(); ord++) {
+          for (unsigned int i = 0; i < xs.size(); i++) {
+            y = 0 * y;
+            for (unsigned int j = 1; j < order(); j++) {
+              y += as[i][ord] * grad_phi(t_prev + eta, t_prev, ord, order());
+            }
+
+            // Keep grads for matrix B
+            Bs[i].row(ord-1) = y.getCoefficients().transpose();
+          }
+        }
+      }
+
+      // Solve linear systems
+      // for (int i = 0; i < xs.size(); i++) {
+      //   // temp contains solution in decreasing order of bases
+      //   temps[i] = As[i].colPivHouseholderQr().solve(Bs[i]);
+      //
+      //   for (int j = 0; j < order() - 1; j++) {
+      //     // TODO Add vectorized implementation
+      //     // as[i][order() - j - 1] += temp(j);
+      //     for (int k = 0; k < xs[0].dimension(); k++) {
+      //       as[i][order() - j - 1].set_coord(k, temps[i](j, k));
+      //     }
+      //   }
+      // }
+
+    }
+
+
     // Compute next point
     for (unsigned int i = 0; i < xs.size(); i++) {
       if (Ks[i] == NULL) {
@@ -196,6 +229,11 @@ public:
         for (unsigned int ord = 0; ord < order(); ord++) {
           xs[i] += as[i][ord] * phi(t_prev + eta, t_prev, ord, order());
         }
+
+        if (prev_facet != -1) Ks[i]->compute_reflection(xs[i], prev_point, prev_facet);
+        prev_facet = -1;
+
+
       } else {
         std::tuple<NT, Point, int> result = Ks[i]->curve_intersect(t_prev, t_prev,
             eta, as[i], phi, grad_phi, oracle);
@@ -207,28 +245,18 @@ public:
           for (unsigned int ord = 0; ord < order(); ord++) {
             xs[i] += as[i][ord] * phi(t_prev + eta, t_prev, ord, order());
           }
+
+          prev_facet = -1;
+
         }
         else {
           // std::cout << "outside" << std::endl;
-          // Compute ray
-          y = (0.95 * std::get<1>(result)) - xs_prev[i];
-          xs[i] = xs_prev[i];
+          // Stick to the boundary
+          xs[i] = 0.99 * std::get<1>(result);
+          prev_point = xs[i];
+          prev_facet = std::get<2>(result);
 
-          // Reflect ray along facet
-          Ks[i]->compute_reflection(y, xs_prev[i], std::get<2>(result));
-          xs[i] += y;
 
-          while (!Ks[i]->is_in(xs[i])) {
-            std::pair<NT, int> pbpair = Ks[i]->line_positive_intersect(xs[i], y, Ar, Av);
-
-            if (pbpair.first >= 0 && pbpair.first <= 1) {
-              xs[i] += (pbpair.first * 0.95) * y;
-              Ks[i]->compute_reflection(y, xs[i], pbpair.second);
-              xs[i] += y;
-            }
-            else break;
-
-          }
         }
       }
     }
