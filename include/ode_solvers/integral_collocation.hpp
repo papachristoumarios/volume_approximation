@@ -168,7 +168,7 @@ class LagrangePolynomial : public LagrangeBasis {
       for (int i = 0; i < order; i++) {
         if (i != j) {
           mult_den *= (coeffs[j] - coeffs[i]);
-          mult_num *= (t - coeffs[i]);
+          mult_num *= (t - coeffs[j]);
         }
       }
 
@@ -179,7 +179,7 @@ class LagrangePolynomial : public LagrangeBasis {
         case DERIVATIVE:
           result = NT(0);
           for (int i = 0; i < order; i++) {
-            if (i != j) result += mult_num / (t - coeffs[i]);
+            if (i != j) result += mult_num / (t - coeffs[j]);
           }
           result *= mult_den;
           break;

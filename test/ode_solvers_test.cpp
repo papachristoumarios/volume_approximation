@@ -434,6 +434,13 @@ void test_collocation_constrained(){
 }
 
 template <typename NT>
+void test_lagrange_polynomials() {
+  
+
+}
+
+
+template <typename NT>
 void call_test_collocation() {
 
   std::cout << "--- Testing solution to dx / dt = -x w/ collocation" << std::endl;
@@ -444,8 +451,20 @@ void call_test_collocation() {
 
 }
 
+template <typename NT>
+void call_test_lagrange_polynomials() {
+
+  std::cout << "--- Testing lagrange polynomial basis functions" << std::endl;
+  test_lagrange_polynomials<NT>();
+
+}
+
 TEST_CASE("collocation") {
   call_test_collocation<double>();
+}
+
+TEST_CASE("lagrange_polynomials") {
+  call_test_lagrange_polynomials<double>();
 }
 
 #endif
