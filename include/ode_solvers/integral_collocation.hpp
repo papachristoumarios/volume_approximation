@@ -62,7 +62,7 @@ public:
   bounds Ks;
 
   // Contains the sub-states
-  pts xs, xs_prev;
+  pts xs, xs_prev, X_temp;
 
   Point &x, &v;
   Point y;
@@ -72,7 +72,7 @@ public:
 
   VT Ar, Av;
 
-  MT A_phi;
+  MT A_phi, X0, X, X_prev, MT F_op;
 
   unsigned int _order;
 
@@ -101,9 +101,9 @@ public:
       cs.push_back(temp_node);
     }
 
-    phi = LagrangeBasis::LagrangePolynomial<Point>(cs, LagrangeBasis::BaseType.FUNCTION);
-    grad_phi = LagrangeBasis::LagrangePolynomial<Point>(cs, LagrangeBasis::BaseType.DERIVATIVE);
-    integral_phi = LagrangeBasis::LagrangePolynomial<Point>(cs, LagrangeBasis::BaseType.INTEGRAL);
+    phi = LagrangeBasis<NT>(cs, LagrangeBasis::BaseType.FUNCTION);
+    grad_phi = LagrangeBasis<NT>(cs, LagrangeBasis::BaseType.DERIVATIVE);
+    integral_phi = LagrangeBasis<NT>(cs, LagrangeBasis::BaseType.INTEGRAL);
 
     A_phi.resize(order(), order());
 
@@ -114,10 +114,44 @@ public:
       }
     }
 
+    X.resize(2 * dim, order());
+    X0.resize(2 * dim, order());
+    X_prev.resize(2 * dim, order());
+  }
 
+  void initialize_fixed_point() {
+    for (unsigned int ord = 0; ord < order(); ord++) {
+      for (unsigned int i = 0; i < xs.size(); i++) {
+          X0.col(ord).seqN(i * dim, dim) = xs[i].getCoefficients();
+      }
+    }
   }
 
   void step() {
+    initialize_fixed_point();
+
+    X = X0;
+
+    // TODO change with paper iters T / eps * max (F)
+    for (int iter = 0; iter < 10; iter++) {
+      X_prev = X;
+
+      for (unsigned int ord = 0; ord < order(); j++) {
+        X_temp.clear();
+        for (unsigned int i = 0; i < xs.size(); i++) {
+          X_temp.push_back(Point(X.col(ord)));
+        }
+        for (unsigned int i = 0; i < xs.size(); i++) {
+          F_op.col(ord).seqN(i * dim, dim) =
+            Fs[i](X_temp, t_prev + c[ord] * eta).getCoefficients();
+        }
+      }
+
+      X = X0 + F_op * A_phi;
+
+    }
+
+
 
   }
 
@@ -144,60 +178,5 @@ public:
   }
 };
 
-
-
-
-class LagrangePolynomial : public LagrangeBasis {
-
-  template <typename Point>
-  class Basis {
-    typedef template Point::FT NT;
-
-    std::vector<Point> &coeffs;
-    int order;
-    BasisType basis_type;
-
-    LagrangePolynomial(std::vector<Point> coeffs_, BasisType basis_type_) :
-      coeffs(coeffs_), order((int) order.size()), basis_type(basis_type_) {}
-
-    NT operator() (NT t, NT t0, int j, NT ord) {
-      NT result;
-      NT mult _den = NT(1);
-      NT mult_num = NT(1);
-
-      for (int i = 0; i < order; i++) {
-        if (i != j) {
-          mult_den *= (coeffs[j] - coeffs[i]);
-          mult_num *= (t - coeffs[j]);
-        }
-      }
-
-      switch(basis_type) {
-        case FUNCTION:
-          result = mult_num / mult_den;
-          break;
-        case DERIVATIVE:
-          result = NT(0);
-          for (int i = 0; i < order; i++) {
-            if (i != j) result += mult_num / (t - coeffs[j]);
-          }
-          result *= mult_den;
-          break;
-        case INTEGRAL:
-          result = NT(0);
-          // TODO add implementation
-      }
-
-      return result;
-    }
-  };
-
-  enum BasisType {
-    DERIVATIVE,
-    FUNCTION,
-    INTEGRAL
-  };
-
-};
 
 #endif

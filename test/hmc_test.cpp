@@ -112,10 +112,10 @@ void test_underdamped_langevin(){
     x0 = x0 - z;
 
     UnderdampedLangevinWalk::Walk<Point, Hpolytope, RandomNumberGenerator>
-      uld(NULL, x0, v0, neg_grad_f, f, params);
+      uld(&P, x0, v0, neg_grad_f, f, params);
 
-    for (int i = 0; i < 20000; i++) {
-      uld.apply();
+    for (int i = 0; i < 1000; i++) {
+      uld.apply(rng, 1, true);
       std::cout << uld.x.getCoefficients().transpose() << std::endl;
     }
 
@@ -123,12 +123,12 @@ void test_underdamped_langevin(){
 
 template <typename NT>
 void call_test_hmc() {
-  test_hmc<double>();
+  test_hmc<NT>();
 }
 
 template <typename NT>
 void call_test_langevin() {
-  test_underdamped_langevin<double>();
+  test_underdamped_langevin<NT>();
 }
 
 TEST_CASE("hmc") {

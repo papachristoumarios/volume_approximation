@@ -90,6 +90,7 @@ class LagrangeBasis {
         break;
       case INTEGRAL:
         result = NT(0);
+        throw true;
         // TODO add implementation
     }
 

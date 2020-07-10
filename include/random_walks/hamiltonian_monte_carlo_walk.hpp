@@ -66,6 +66,9 @@ struct HamiltonianMonteCarloWalk {
     // Fs[1] contains - grad f(x)
     funcs Fs;
 
+    // Helper variables
+    NT H, H_tilde, log_prob, u_logprob;
+
     // Density exponent
     std::function<NT(Point)> f;
 
@@ -130,16 +133,16 @@ struct HamiltonianMonteCarloWalk {
 
       if (metropolis_filter) {
         // Calculate initial Hamiltonian
-        NT H = hamiltonian(x, v);
+        H = hamiltonian(x, v);
 
         // Calculate new Hamiltonian
-        NT H_tilde = hamiltonian(x_tilde, v_tilde);
+        H_tilde = hamiltonian(x_tilde, v_tilde);
 
         // Log-sum-exp trick
-        NT log_prob = H - H_tilde < 0 ? H - H_tilde : 0;
+        log_prob = H - H_tilde < 0 ? H - H_tilde : 0;
 
         // Decide to switch
-        NT u_logprob = log(rng.sample_urdist());
+        u_logprob = log(rng.sample_urdist());
         if (u_logprob < log_prob) {
           x = x_tilde;
         }

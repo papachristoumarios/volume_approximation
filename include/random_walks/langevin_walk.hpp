@@ -72,6 +72,7 @@ struct UnderdampedLangevinWalk {
     NT epsilon = NT(1e-4); // tolerance in mixing
     NT eta = NT(0); // step size
     NT kappa = NT(1); // condition number
+    NT u = NT(1);
   };
 
   template
@@ -107,6 +108,8 @@ struct UnderdampedLangevinWalk {
     sfuncs Fs;
     std::function<NT(Point)> f;
 
+    NT H_tilde, H, log_prob, u_logprob;
+
     Walk(Polytope *P,
       Point &initial_x,
       Point &initial_v,
@@ -133,14 +136,14 @@ struct UnderdampedLangevinWalk {
       params.eta = 1.0 /
         sqrt(20 * params.L);
 
-      NT u = 1.0 / params.L;
+      params.u = 1.0 / params.L;
 
       // Define Kinetic and Potential Energy gradient updates
       // Kinetic energy gradient grad_K = v
       func temp_grad_K = [](pts xs, NT t) { return xs[1]; };
 
       sfunc stoch_temp_grad_K(temp_grad_K, NT(0), NT(1), NT(0), 0);
-      sfunc stoch_neg_grad_f(neg_grad_f, NT(-2), NT(u), NT(2 * sqrt(u)), 1);
+      sfunc stoch_neg_grad_f(neg_grad_f, NT(-2), NT(params.u), NT(2 * sqrt(params.u)), 1);
 
 
       Fs.push_back(stoch_temp_grad_K);
@@ -160,7 +163,10 @@ struct UnderdampedLangevinWalk {
 
     };
 
-    inline void apply(int walk_length=1)
+    inline void apply(
+      RandomNumberGenerator &rng,
+      int walk_length=1,
+      bool metropolis_filter=false)
     {
       solver->set_state(0, x);
       solver->set_state(1, v);
@@ -170,8 +176,31 @@ struct UnderdampedLangevinWalk {
       x_tilde = solver->get_state(0);
       v_tilde = solver->get_state(1);
 
-      x = x_tilde;
-      v = v_tilde;
+      if (metropolis_filter) {
+        // Calculate initial Hamiltonian
+        H = hamiltonian(x, v);
+
+        // Calculate new Hamiltonian
+        H_tilde = hamiltonian(x_tilde, v_tilde);
+
+        // Log-sum-exp trick
+        log_prob = H - H_tilde < 0 ? H - H_tilde : 0;
+
+        // Decide to switch
+        u_logprob = log(rng.sample_urdist());
+        if (u_logprob < log_prob) {
+          x = x_tilde;
+          v = v_tilde;
+        }
+      } else {
+        x = x_tilde;
+        v = v_tilde;
+      }
+
+    }
+
+    inline NT hamiltonian(Point &pos, Point &vel) const {
+      return f(pos) + 1.0 / (2 * params.u) * vel.dot(vel);
     }
 
   };
