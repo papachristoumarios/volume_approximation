@@ -40,7 +40,7 @@ struct HamiltonianMonteCarloWalk {
 
     typedef std::vector<Point> pts;
     typedef typename Point::FT NT;
-    typedef std::function <Point(pts, NT)> func;
+    typedef std::function <Point(pts&, NT&)> func;
     typedef std::vector<func> funcs;
     typedef std::vector<Polytope*> bounds;
 
@@ -97,7 +97,7 @@ struct HamiltonianMonteCarloWalk {
 
       // Define Kinetic and Potential Energy gradient updates
       // Kinetic energy gradient grad_K = v
-      func temp_grad_K = [](pts xs, NT t) { return xs[1]; };
+      func temp_grad_K = [](pts &xs, NT &t) { return xs[1]; };
       Fs.push_back(temp_grad_K);
       Fs.push_back(neg_grad_f);
 

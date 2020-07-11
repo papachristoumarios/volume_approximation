@@ -21,6 +21,7 @@ else()
   find_library(GMP NAMES libgmp.so PATHS /usr/lib/x86_64-linux-gnu /usr/lib/i386-linux-gnu)
   find_library(MPSOLVE NAMES libmps.so PATHS /usr/local/lib)
   find_library(PTHREAD NAMES libpthread.so PATHS /usr/lib/x86_64-linux-gnu /usr/lib/i386-linux-gnu)
+  find_library(FFTW3 NAMES libfftw3.so.3 PATHS /usr/lib/x86_64-linux-gnu /usr/lib/i386-linux-gnu)
 
   if (NOT IFOPT)
 
@@ -34,10 +35,15 @@ else()
 
     message(FATAL_ERROR "This program requires the mpsolve library, and will not be compiled.")
 
+  elseif (NOT FFTW3)
+
+    message(FATAL_ERROR "This program requires the fftw3 library, and will not be compiled.")
+
   else()
     message(STATUS "Library ifopt found: ${IFOPT}")
     message(STATUS "Library gmp found: ${GMP}")
     message(STATUS "Library mpsolve found: ${MPSOLVE}")
+    message(STATUS "Library fftw3 found:" ${FFTW3})
 
   endif(NOT IFOPT)
 
@@ -196,7 +202,7 @@ else ()
   TARGET_LINK_LIBRARIES(benchmarks_sob ${LP_SOLVE})
   TARGET_LINK_LIBRARIES(benchmarks_cg ${LP_SOLVE})
   TARGET_LINK_LIBRARIES(benchmarks_cb ${LP_SOLVE})
-  TARGET_LINK_LIBRARIES(ode_solvers_test ${LP_SOLVE} ${IFOPT} ${IFOPT_IPOPT} ${PTHREAD} ${GMP} ${MPSOLVE})
+  TARGET_LINK_LIBRARIES(ode_solvers_test ${LP_SOLVE} ${IFOPT} ${IFOPT_IPOPT} ${PTHREAD} ${GMP} ${MPSOLVE} ${FFTW3})
   TARGET_LINK_LIBRARIES(boundary_oracles_test ${LP_SOLVE} ${IFOPT} ${IFOPT_IPOPT} ${PTHREAD} ${GMP} ${MPSOLVE})
   TARGET_LINK_LIBRARIES(root_finders_test ${PTHREAD} ${GMP} ${MPSOLVE})
   TARGET_LINK_LIBRARIES(hmc_test ${LP_SOLVE} ${IFOPT} ${IFOPT_IPOPT} ${PTHREAD} ${GMP} ${MPSOLVE})

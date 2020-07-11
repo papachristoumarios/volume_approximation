@@ -14,22 +14,21 @@
 // logconcave densities." arXiv preprint arXiv:1812.06243 (2018).
 
 
-#ifndef COLLOCATION_HPP
-#define COLLOCATION_HPP
+#ifndef INTEGRAL_COLLOCATION_HPP
+#define INTEGRAL_COLLOCATION_HPP
 
 #include "nlp_oracles/nlp_hpolyoracles.hpp"
 #include "nlp_oracles/nlp_vpolyoracles.hpp"
+#include "boost/numeric/ublas/vector.hpp"
+#include "boost/numeric/ublas/io.hpp"
+#include "boost/math/special_functions/chebyshev.hpp"
+#include "boost/math/special_functions/chebyshev_transform.hpp"
 
 template <
   typename Point,
   typename NT,
   class Polytope,
-  class bfunc,
-  class func=std::function <Point(std::vector<Point>, NT)>,
-  class NontLinearOracle=MPSolveHPolyoracle<
-    Polytope,
-    bfunc
-  >
+  class func=std::function <Point(std::vector<Point>&, NT&)>
 >
 class IntegralCollocationODESolver {
 public:
@@ -45,116 +44,126 @@ public:
   typedef std::vector<func> funcs;
   typedef std::vector<Polytope*> bounds;
   typedef std::vector<NT> coeffs;
+  typedef boost::numeric::ublas::vector<NT> boost_vector;
+  typedef boost::math::chebyshev_transform<NT> chebysev_transform_boost;
 
   unsigned int dim;
 
   NT eta;
-  NT t, t_prev, dt;
+  NT t, t_prev, dt, temp_node, a, b;
   const NT tol = 1e-6;
 
   // Function oracles x'(t) = F(x, t)
   funcs Fs;
-
-  // Basis functions
-  LagrangeBasis phi, grad_phi, integral_phi;
-
-
   bounds Ks;
 
   // Contains the sub-states
-  pts xs, xs_prev, X_temp;
-
-  Point &x, &v;
-  Point y;
+  pts xs, X_temp;
 
   // Temporal coefficients
   coeffs cs;
 
-  VT Ar, Av;
+  VT Ar, Av, X_op, nodes;
 
-  MT A_phi, X0, X, X_prev, MT F_op;
+  MT A_phi, X0, X, X_prev, F_op;
 
   unsigned int _order;
 
   int prev_facet = -1;
   Point prev_point;
 
-  IntegralCollocationODESolver(NT initial_time, NT step, pts initial_state, funcs oracles,
-    bounds boundaries, unsigned int order_) :
-    t(initial_time), xs(initial_state), Fs(oracles), eta(step), Ks(boundaries) :
+  IntegralCollocationODESolver(NT initial_time, NT step, pts initial_state,
+    funcs oracles, bounds boundaries, unsigned int order_) :
+    t(initial_time), xs(initial_state), Fs(oracles), eta(step), Ks(boundaries),
     _order(order_) {
       dim = xs[0].dimension();
       initialize_matrices();
-
     };
 
   unsigned int order() const {
-    return order_;
+    return _order;
   }
 
   void initialize_matrices() {
 
-    // Determine Chebyshev nodes
-    NT temp_node;
-    for (int i = 0; i < order(); i++) {
-      temp_node = cos((2 * i - 1) / (2 * order()) * M_PI);
-      cs.push_back(temp_node);
-    }
-
-    phi = LagrangeBasis<NT>(cs, LagrangeBasis::BaseType.FUNCTION);
-    grad_phi = LagrangeBasis<NT>(cs, LagrangeBasis::BaseType.DERIVATIVE);
-    integral_phi = LagrangeBasis<NT>(cs, LagrangeBasis::BaseType.INTEGRAL);
-
     A_phi.resize(order(), order());
+    nodes.resize(order());
 
-    // Calculate integrals of Chebyshev nodes based on "Fast Polynomial Interpolation"
-    for (int i = 0; i < order(); i++) {
-      for (int j = 0; j < order(); j++) {
-        A_phi(i, j) = integral_phi(cs[j], 0, i, order());
+    boost_vector b_vec(order());
+
+    for (unsigned int i = 0; i < order(); i++) b_vec(i) = NT(0);
+
+    // Calculate integrals of basis functions based on the Discrete Chebyshev Transform
+    for (unsigned int i = 0; i < order(); i++) {
+      b_vec(i) = NT(1);
+      if (i > 0) {
+        b_vec(i-1) = NT(0);
+      }
+      for (unsigned int j = 0; j < order(); j++) {
+        nodes(j) = NT(cos((2 * (1 + j) - 1) * M_PI / (2 * order())));
+        if (nodes(j) < NT(-1)) {
+          a = nodes(j);
+          b = NT(-1);
+        } else {
+          a = NT(-1);
+          b = nodes(j);
+        }
+
+        chebysev_transform_boost transform(b_vec, a, b, 1e-6, 5);
+        std::cout << "result" <<  NT(transform.integrate()) << std::endl;
       }
     }
 
-    X.resize(2 * dim, order());
-    X0.resize(2 * dim, order());
-    X_prev.resize(2 * dim, order());
+    // std::cout << A_phi << std::endl;
+
+    X.resize(xs.size() * dim, order());
+    X0.resize(xs.size() * dim, order());
+    X_prev.resize(xs.size() * dim, order());
+    X_op.resize(xs.size() * dim);
   }
 
   void initialize_fixed_point() {
     for (unsigned int ord = 0; ord < order(); ord++) {
       for (unsigned int i = 0; i < xs.size(); i++) {
-          X0.col(ord).seqN(i * dim, dim) = xs[i].getCoefficients();
+
+          X0.col(ord).seqN(i * dim, (i + 1) * dim) = xs[i].getCoefficients();
       }
     }
   }
+  //
+  // void step() {
+  //   initialize_fixed_point();
+  //
+  //   X = X0;
+  //
+  //   // TODO change with paper iters T / eps * max (F)
+  //   for (int iter = 0; iter < 10; iter++) {
+  //     for (unsigned int ord = 0; ord < order(); ord++) {
+  //       for (unsigned int i = 0; i < xs.size(); i++) {
+  //         X_temp[i] = Point(X.col(ord));
+  //       }
+  //       for (unsigned int i = 0; i < xs.size(); i++) {
+  //         temp_node = nodes(ord) * eta;
+  //         F_op.col(ord).seqN(i * dim, (i + 1) * dim) =
+  //           Fs[i](X_temp, temp_node).getCoefficients();
+  //       }
+  //     }
+  //
+  //     X = X0 + F_op * A_phi;
+  //
+  //   }
+  //
+  //   X_op = X0;
+  //
+  //   for (unsigned int i = 0; i < xs.size(); i++) {
+  //     xs[i] = Point(X_op.seqN(i * dim, (i + 1) * dim));
+  //   }
+  //
+  // }
 
   void step() {
-    initialize_fixed_point();
-
-    X = X0;
-
-    // TODO change with paper iters T / eps * max (F)
-    for (int iter = 0; iter < 10; iter++) {
-      X_prev = X;
-
-      for (unsigned int ord = 0; ord < order(); j++) {
-        X_temp.clear();
-        for (unsigned int i = 0; i < xs.size(); i++) {
-          X_temp.push_back(Point(X.col(ord)));
-        }
-        for (unsigned int i = 0; i < xs.size(); i++) {
-          F_op.col(ord).seqN(i * dim, dim) =
-            Fs[i](X_temp, t_prev + c[ord] * eta).getCoefficients();
-        }
-      }
-
-      X = X0 + F_op * A_phi;
-
-    }
-
-
 
   }
-
 
   void print_state() {
     for (int j = 0; j < xs.size(); j++) {

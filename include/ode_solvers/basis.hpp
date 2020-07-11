@@ -17,8 +17,87 @@ enum BasisType {
   INTEGRAL = 2
 };
 
-template <typename NT, class bfunc>
-class RationalFunctionBasis {
+
+template <typename NT>
+struct PolynomialBasis {
+  BasisType basis_type;
+
+  PolynomialBasis(BasisType basis_type_) : basis_type(basis_type_) {}
+
+  NT operator() (NT t, NT t0, unsigned int j, unsigned int ord) {
+    switch (basis_type) {
+      case FUNCTION:
+        return pow(t - t0, NT(j));
+      case DERIVATIVE:
+        return NT(j) * pow(t - t0, NT(j - 1));
+      case INTEGRAL:
+        return pow(t - t0, NT(j + 1)) / NT(j + 1);
+    }
+  }
+
+};
+
+template <typename NT>
+struct Polynomial {
+
+  BasisType basis_type;
+  PolynomialBasis<NT> basis;
+  std::vector<NT> coeffs;
+  NT result;
+  unsigned int ord;
+
+  Polynomial(std::vector<NT> coeffs_, BasisType basis_type_) :
+    basis_type(basis_type_), coeffs(coeffs_), basis(basis_type_) {
+      ord = coeffs.size();
+    }
+
+  NT operator() (NT t, NT t0, unsigned int j=-1, unsigned int ord=-1) {
+    result = NT(0);
+
+    for (unsigned int i = 0; i < ord; i++) {
+        result += coeffs[i] * basis(t, t0, i, ord);
+    }
+
+    return result;
+  }
+
+  static std::vector<NT> convolve(std::vector<NT> const& p, std::vector<NT> const& q) {
+    // Performs direct convolution of p and q (less round-off error than FFT)
+    unsigned int n = p.size();
+    unsigned int m = q.size();
+    unsigned int r = n + m - 1;
+
+    std::vector<NT> result(r, NT(0));
+
+    unsigned int j, k;
+
+    for (unsigned int i = 0; i < r; i++) {
+      j = (i >= m - 1)? i - (m - 1) : 0;
+      k = (i <  n - 1)? i : n - 1;
+      for (unsigned int z = j; z <= k; z++) result[i] += (p[z] * q[i - z]);
+    }
+
+    return result;
+  }
+
+  static std::vector<NT> multi_convolve(std::vector<std::vector<NT>> &seq) {
+
+    std::vector<NT> result;
+    result = seq[0];
+
+    for (unsigned int i = 1; i < seq.size(); i++) {
+      result = convolve(result, seq[i]);
+    }
+
+    return result;
+
+  }
+
+
+};
+
+template <typename NT, typename bfunc>
+struct RationalFunctionBasis {
   bfunc p, q;
   bfunc grad_p, grad_q;
   NT reg = 1e-6;
@@ -48,54 +127,6 @@ class RationalFunctionBasis {
     }
   }
 
-};
-
-
-template <typename NT>
-class LagrangeBasis {
-
-  std::vector<NT> &coeffs;
-  int order;
-  BasisType basis_type;
-
-  NT result, mult_num, mult_den;
-
-  LagrangeBasis(std::vector<NT> coeffs_, BasisType basis_type_) :
-    coeffs(coeffs_), basis_type(basis_type_) {
-      order = (int) coeffs_.size();
-    }
-
-  NT operator() (NT t, NT t0, int j, NT ord) {
-
-    mult_den = NT(1);
-    mult_num = NT(1);
-
-    for (int i = 0; i < order; i++) {
-      if (i != j) {
-        mult_den *= (coeffs[j] - coeffs[i]);
-        mult_num *= (t - coeffs[j]);
-      }
-    }
-
-    switch(basis_type) {
-      case FUNCTION:
-        result = mult_num / mult_den;
-        break;
-      case DERIVATIVE:
-        result = NT(0);
-        for (int i = 0; i < order; i++) {
-          if (i != j) result += mult_num / (t - coeffs[j]);
-        }
-        result *= mult_den;
-        break;
-      case INTEGRAL:
-        result = NT(0);
-        throw true;
-        // TODO add implementation
-    }
-
-    return result;
-  }
 };
 
 #endif

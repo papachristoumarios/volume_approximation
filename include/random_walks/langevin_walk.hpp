@@ -85,7 +85,7 @@ struct UnderdampedLangevinWalk {
 
     typedef std::vector<Point> pts;
     typedef typename Point::FT NT;
-    typedef std::function <Point(pts, NT)> func;
+    typedef std::function <Point(pts&, NT&)> func;
     typedef LangevinStochasticFunction<NT, Point, RandomNumberGenerator, func> sfunc;
     typedef std::vector<sfunc> sfuncs;
     typedef std::vector<Polytope*> bounds;

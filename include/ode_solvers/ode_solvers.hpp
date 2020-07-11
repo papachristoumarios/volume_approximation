@@ -47,6 +47,7 @@
 #ifndef DISABLE_NLP_ORACLES
 #include "collocation.hpp"
 #include "basis.hpp"
+#include "integral_collocation.hpp"
 #endif
 
 #ifndef ODE_SOLVERS_HPP

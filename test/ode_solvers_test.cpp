@@ -388,6 +388,32 @@ void test_collocation(){
 }
 
 template <typename NT>
+void test_integral_collocation(){
+    typedef Cartesian<NT>    Kernel;
+    typedef typename Kernel::Point    Point;
+    typedef std::vector<Point> pts;
+    typedef std::function<Point(pts&, NT&)> func;
+    typedef std::vector<NT> coeffs;
+    typedef std::vector<func> funcs;
+    typedef HPolytope<Point>  Hpolytope;
+    typedef std::vector<Hpolytope*> bounds;
+
+    funcs Fs;
+    func F = [](pts &xs, NT &t) { return (-1.0) * xs[0]; };
+    Fs.push_back(F);
+    Point q0 = Point(1);
+    q0.set_coord(0, 1.0);
+    pts q;
+    q.push_back(q0);
+
+    IntegralCollocationODESolver<Point, NT, Hpolytope> c_solver = IntegralCollocationODESolver<Point, NT, Hpolytope>(0, 1.0, q, Fs, bounds{NULL}, 8);
+    c_solver.steps(100);
+    NT err=0.001;
+    NT error = c_solver.xs[0].dot(c_solver.xs[0]);
+    // CHECK(error < err);
+}
+
+template <typename NT>
 void test_collocation_constrained(){
     typedef Cartesian<NT>    Kernel;
     typedef typename Kernel::Point    Point;
@@ -434,37 +460,19 @@ void test_collocation_constrained(){
 }
 
 template <typename NT>
-void test_lagrange_polynomials() {
-  
-
-}
-
-
-template <typename NT>
 void call_test_collocation() {
 
   std::cout << "--- Testing solution to dx / dt = -x w/ collocation" << std::endl;
   test_collocation<NT>();
+  test_integral_collocation<NT>();
 
   std::cout << "--- Testing solution to dx / dt = x in [-1, 1] w/ collocation" << std::endl;
   test_collocation_constrained<NT>();
 
 }
 
-template <typename NT>
-void call_test_lagrange_polynomials() {
-
-  std::cout << "--- Testing lagrange polynomial basis functions" << std::endl;
-  test_lagrange_polynomials<NT>();
-
-}
-
 TEST_CASE("collocation") {
   call_test_collocation<double>();
-}
-
-TEST_CASE("lagrange_polynomials") {
-  call_test_lagrange_polynomials<double>();
 }
 
 #endif
