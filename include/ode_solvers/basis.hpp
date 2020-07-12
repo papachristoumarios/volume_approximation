@@ -158,7 +158,7 @@ struct LagrangePolynomial {
 
     int j = (int) round((order() * acos(t)) / M_PI - 0.5);
     NT temp = cos((j+0.5) * M_PI / order());
-  
+
     if (abs(temp - nodes(j)) < 1e-6) {
       if (basis == -1) return coeffs(j);
       else return NT(1);
@@ -169,5 +169,18 @@ struct LagrangePolynomial {
 
   }
 };
+
+template <typename NT>
+void degree_doubling_chebyshev(std::vector<NT> &coeffs,
+  std::vector<NT> &result) {
+  unsigned int N = coeffs.size() - 1;
+
+  for (int i = 0; i <= 2 * N; i++) {
+    if (i > N) result[i] = coeffs[i - N];
+    else if (i == N) result[i] = 2 * coeffs[0];
+    else result[i] = coeffs[N - i];
+  }
+
+}
 
 #endif
