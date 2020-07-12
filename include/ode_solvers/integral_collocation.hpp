@@ -45,7 +45,7 @@ public:
   typedef std::vector<Polytope*> bounds;
   typedef std::vector<NT> coeffs;
   typedef boost::numeric::ublas::vector<NT> boost_vector;
-  typedef boost::math::chebyshev_transform<NT> chebysev_transform_boost;
+  typedef boost::math::chebyshev_transform<NT> chebyshev_transform_boost;
 
   unsigned int dim;
 
@@ -59,6 +59,7 @@ public:
 
   // Contains the sub-states
   pts xs, X_temp;
+  Point y;
 
   // Temporal coefficients
   coeffs cs;
@@ -69,12 +70,14 @@ public:
 
   unsigned int _order;
 
+  LagrangePolynomial<NT, VT> lagrange_poly;
+
   int prev_facet = -1;
   Point prev_point;
 
   IntegralCollocationODESolver(NT initial_time, NT step, pts initial_state,
     funcs oracles, bounds boundaries, unsigned int order_) :
-    t(initial_time), xs(initial_state), Fs(oracles), eta(step), Ks(boundaries),
+    t(initial_time), xs(initial_state), X_temp(initial_state), Fs(oracles), eta(step), Ks(boundaries),
     _order(order_) {
       dim = xs[0].dimension();
       initialize_matrices();
@@ -89,81 +92,106 @@ public:
     A_phi.resize(order(), order());
     nodes.resize(order());
 
-    boost_vector b_vec(order());
+    std::vector<NT> temp;
 
-    for (unsigned int i = 0; i < order(); i++) b_vec(i) = NT(0);
+    for (unsigned int j = 0; j < order(); j++) {
+      nodes(j) = cos((j+0.5) * M_PI / order());
+    }
+
+    lagrange_poly.set_nodes(nodes);
 
     // Calculate integrals of basis functions based on the Discrete Chebyshev Transform
     for (unsigned int i = 0; i < order(); i++) {
-      b_vec(i) = NT(1);
-      if (i > 0) {
-        b_vec(i-1) = NT(0);
-      }
-      for (unsigned int j = 0; j < order(); j++) {
-        nodes(j) = NT(cos((2 * (1 + j) - 1) * M_PI / (2 * order())));
-        if (nodes(j) < NT(-1)) {
+
+      lagrange_poly.set_basis((int) i);
+
+      for (unsigned int j = 0; j <= i; j++) {
+        if (nodes(j) < NT(0)) {
           a = nodes(j);
-          b = NT(-1);
+          b = NT(0);
         } else {
-          a = NT(-1);
+          a = NT(0);
           b = nodes(j);
         }
 
-        chebysev_transform_boost transform(b_vec, a, b, 1e-6, 5);
-        std::cout << "result" <<  NT(transform.integrate()) << std::endl;
+        chebyshev_transform_boost transform(lagrange_poly, a, b);
+        A_phi(i, j) =  NT(transform.integrate());
+        A_phi(j, i) = A_phi(i, j);
       }
     }
 
-    // std::cout << A_phi << std::endl;
+    #ifdef VOLESTI_DEBUG
+      std::cout << "A_phi" << std::endl;
+      std::cout << A_phi << std::endl;
+    #endif
 
     X.resize(xs.size() * dim, order());
     X0.resize(xs.size() * dim, order());
     X_prev.resize(xs.size() * dim, order());
     X_op.resize(xs.size() * dim);
+
+    F_op.resize(xs.size() * dim, order());
+
+    lagrange_poly.set_basis(-1);
   }
 
   void initialize_fixed_point() {
     for (unsigned int ord = 0; ord < order(); ord++) {
       for (unsigned int i = 0; i < xs.size(); i++) {
-
-          X0.col(ord).seqN(i * dim, (i + 1) * dim) = xs[i].getCoefficients();
+        for (unsigned int j = i * dim; j < (i + 1) * dim; j++) {
+          X0(j, ord) = xs[i][j % dim];
+        }
       }
     }
   }
-  //
-  // void step() {
-  //   initialize_fixed_point();
-  //
-  //   X = X0;
-  //
-  //   // TODO change with paper iters T / eps * max (F)
-  //   for (int iter = 0; iter < 10; iter++) {
-  //     for (unsigned int ord = 0; ord < order(); ord++) {
-  //       for (unsigned int i = 0; i < xs.size(); i++) {
-  //         X_temp[i] = Point(X.col(ord));
-  //       }
-  //       for (unsigned int i = 0; i < xs.size(); i++) {
-  //         temp_node = nodes(ord) * eta;
-  //         F_op.col(ord).seqN(i * dim, (i + 1) * dim) =
-  //           Fs[i](X_temp, temp_node).getCoefficients();
-  //       }
-  //     }
-  //
-  //     X = X0 + F_op * A_phi;
-  //
-  //   }
-  //
-  //   X_op = X0;
-  //
-  //   for (unsigned int i = 0; i < xs.size(); i++) {
-  //     xs[i] = Point(X_op.seqN(i * dim, (i + 1) * dim));
-  //   }
-  //
-  // }
 
   void step() {
+    initialize_fixed_point();
+
+    X = X0;
+    X_prev = 100 * X0;
+    NT err;
+
+    do {
+      for (unsigned int ord = 0; ord < order(); ord++) {
+        for (unsigned int i = 0; i < xs.size(); i++) {
+          X_temp[i] = Point(X.col(ord));
+        }
+        for (unsigned int i = 0; i < xs.size(); i++) {
+          temp_node = nodes(ord) * eta;
+          y = Fs[i](X_temp, temp_node);
+          for (int j = i * dim; j < (i + 1) * dim; j++) {
+            F_op(j, ord) = y[j % dim];
+          }
+        }
+      }
+
+      X = X0 + F_op * A_phi;
+
+      X_prev = X;
+
+      err = sqrt((X - X_prev).squaredNorm());
+
+    } while (err > 1e-4);
+
+    X_op = X0.col(0);
+
+    for (unsigned int i = 0; i < xs.size(); i++) {
+      for (unsigned int j = i * dim; j < (i + 1) * dim; j++) {
+        lagrange_poly.set_coeffs(F_op.row(j).transpose());
+        chebyshev_transform_boost transform(lagrange_poly, 0, eta, 1e-5, 5);
+        X_op(j) += NT(transform.integrate());
+      }
+    }
+
+    for (unsigned int i = 0; i < xs.size(); i++) {
+      for (unsigned int j = i * dim; j < (i + 1) * dim; j++) {
+        xs[i].set_coord(j % dim, X_op(j));
+      }
+    }
 
   }
+
 
   void print_state() {
     for (int j = 0; j < xs.size(); j++) {

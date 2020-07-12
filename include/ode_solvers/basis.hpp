@@ -129,4 +129,60 @@ struct RationalFunctionBasis {
 
 };
 
+template <typename NT, typename VT>
+struct LagrangePolynomial {
+
+  VT coeffs;
+  VT nodes;
+  int basis = -1;
+
+  LagrangePolynomial() {}
+
+  int order() const {
+    return nodes.rows();
+  }
+
+  void set_nodes(VT nodes_) {
+    nodes = nodes_;
+  }
+
+  void set_basis(int basis_) {
+    basis = basis_;
+  }
+
+  void set_coeffs(VT coeffs_) {
+    coeffs = coeffs_;
+  }
+
+  NT operator() (NT t) const {
+    NT mult_num = NT(1);
+    NT mult_den = NT(1);
+
+    if (basis != -1) {
+      for (int i = 0; i < order(); i++) {
+        if (i != basis) {
+          mult_num *= (t - nodes(i));
+          mult_den *= (nodes(basis) - nodes(i));
+        }
+      }
+
+      return mult_num / mult_den;
+    }
+
+    else {
+      int j = (int) round((order() * acos(t)) / M_PI - 0.5);
+      NT temp = cos((j+0.5) * M_PI / order());
+
+      if (abs(temp - nodes(j)) < 1e-6) {
+        return coeffs(j);
+      } else {
+        throw true;
+        return NT(-1);
+      }
+
+    }
+
+  }
+};
+
 #endif

@@ -406,11 +406,11 @@ void test_integral_collocation(){
     pts q;
     q.push_back(q0);
 
-    IntegralCollocationODESolver<Point, NT, Hpolytope> c_solver = IntegralCollocationODESolver<Point, NT, Hpolytope>(0, 1.0, q, Fs, bounds{NULL}, 8);
+    IntegralCollocationODESolver<Point, NT, Hpolytope> c_solver = IntegralCollocationODESolver<Point, NT, Hpolytope>(0, 0.1, q, Fs, bounds{NULL}, 4);
     c_solver.steps(100);
     NT err=0.001;
     NT error = c_solver.xs[0].dot(c_solver.xs[0]);
-    // CHECK(error < err);
+    CHECK(error < err);
 }
 
 template <typename NT>
