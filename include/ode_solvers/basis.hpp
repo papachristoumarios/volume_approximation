@@ -170,9 +170,9 @@ struct LagrangePolynomial {
   }
 };
 
-template <typename NT>
-void degree_doubling_chebyshev(std::vector<NT> &coeffs,
-  std::vector<NT> &result) {
+template <typename T>
+void degree_doubling_chebyshev(std::vector<T> &coeffs,
+  std::vector<T> &result) {
   unsigned int N = coeffs.size() - 1;
 
   for (int i = 0; i <= 2 * N; i++) {

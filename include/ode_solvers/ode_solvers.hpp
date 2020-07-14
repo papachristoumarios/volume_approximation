@@ -33,9 +33,10 @@
       5. eta: Step size
       6. t: Temporal variable
 
-  TODO:     
-      1. Change std::function with functors
-      2. Change datastructure of boundaries
+  TODO:
+      1. Change datastructure of boundaries (std::vector<Polytope*>)
+      2. Change std::function to functors
+
 */
 
 #include <iostream>
@@ -47,6 +48,7 @@
 #include "runge_kutta.hpp"
 #include "leapfrog.hpp"
 #include "richardson_extrapolation.hpp"
+#include "oracle_functors.hpp"
 
 #ifndef DISABLE_NLP_ORACLES
 #include "collocation.hpp"
