@@ -28,7 +28,7 @@ template <
   typename Point,
   typename NT,
   class Polytope,
-  class func=std::function <Point(std::vector<Point>&, NT&)>
+  class func
 >
 class IntegralCollocationODESolver {
 public:
@@ -41,7 +41,7 @@ public:
   typedef typename Polytope::MT MT;
   typedef typename Polytope::VT VT;
   typedef std::vector<MT> MTs;
-  typedef std::vector<func> funcs;
+
   typedef std::vector<Polytope*> bounds;
   typedef std::vector<NT> coeffs;
   typedef boost::numeric::ublas::vector<NT> boost_vector;
@@ -54,7 +54,7 @@ public:
   const NT tol = 1e-6;
 
   // Function oracles x'(t) = F(x, t)
-  funcs Fs;
+  func F;
   bounds Ks;
 
   // Contains the sub-states
@@ -76,8 +76,8 @@ public:
   Point prev_point;
 
   IntegralCollocationODESolver(NT initial_time, NT step, pts initial_state,
-    funcs oracles, bounds boundaries, unsigned int order_) :
-    t(initial_time), xs(initial_state), X_temp(initial_state), Fs(oracles), eta(step), Ks(boundaries),
+    func oracle, bounds boundaries, unsigned int order_) :
+    t(initial_time), xs(initial_state), X_temp(initial_state), F(oracle), eta(step), Ks(boundaries),
     _order(order_) {
       dim = xs[0].dimension();
       initialize_matrices();
@@ -159,7 +159,7 @@ public:
         }
         for (unsigned int i = 0; i < xs.size(); i++) {
           temp_node = nodes(ord) * eta;
-          y = Fs[i](X_temp, temp_node);
+          y = F(i,X_temp, temp_node);
           for (int j = i * dim; j < (i + 1) * dim; j++) {
             F_op(j, ord) = y[j % dim];
           }

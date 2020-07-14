@@ -11,11 +11,10 @@
 #ifndef EULER_HPP
 #define EULER_HPP
 
-template <typename Point, typename NT, class Polytope, class func=std::function <Point(std::vector<Point>&, NT&)>>
+template <typename Point, typename NT, class Polytope, class func>
 class EulerODESolver {
 public:
   typedef std::vector<Point> pts;
-  typedef std::vector<func> funcs;
   typedef std::vector<Polytope*> bounds;
   typedef typename Polytope::VT VT;
 
@@ -25,7 +24,7 @@ public:
   NT t;
   VT Ar, Av;
 
-  funcs Fs;
+  func F;
   bounds Ks;
 
   // Contains the sub-states
@@ -38,19 +37,18 @@ public:
   // Previous state boundary facet
   int prev_facet = -1;
 
-  EulerODESolver(NT initial_time, NT step, pts initial_state, funcs oracles,
+  EulerODESolver(NT initial_time, NT step, pts initial_state, func oracle,
     bounds boundaries) :
-    t(initial_time), xs(initial_state), Fs(oracles), eta(step), Ks(boundaries) {
+    t(initial_time), xs(initial_state), F(oracle), eta(step), Ks(boundaries) {
       dim = xs[0].dimension();
     };
 
 
   void step() {
     xs_prev = xs;
-    t += eta;
 
     for (unsigned int i = 0; i < xs.size(); i++) {
-      Point y = Fs[i](xs_prev, t);
+      Point y = F(i, xs_prev, t);
       y = eta * y;
 
       if (Ks[i] == NULL) {
@@ -88,6 +86,8 @@ public:
       }
 
     }
+
+    t += eta;
   }
 
   void print_state() {

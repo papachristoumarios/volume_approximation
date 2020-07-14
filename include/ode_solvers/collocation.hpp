@@ -19,7 +19,7 @@ template <
   typename NT,
   class Polytope,
   class bfunc,
-  class func=std::function <Point(std::vector<Point>&, NT&)>,
+  class func,
   class NontLinearOracle=MPSolveHPolyoracle<
     Polytope,
     bfunc
@@ -36,7 +36,6 @@ public:
   typedef typename Polytope::MT MT;
   typedef typename Polytope::VT VT;
   typedef std::vector<MT> MTs;
-  typedef std::vector<func> funcs;
   typedef std::vector<Polytope*> bounds;
   typedef std::vector<NT> coeffs;
 
@@ -56,7 +55,7 @@ public:
   bool precompute_flag = false;
 
   // Function oracles x'(t) = F(x, t)
-  funcs Fs;
+  func F;
 
   // Basis functions
   bfunc phi, grad_phi;
@@ -89,9 +88,9 @@ public:
   int prev_facet = -1;
   Point prev_point;
 
-  CollocationODESolver(NT initial_time, NT step, pts initial_state, funcs oracles,
+  CollocationODESolver(NT initial_time, NT step, pts initial_state, func oracle,
     bounds boundaries,  coeffs c_coeffs, bfunc basis, bfunc grad_basis) :
-    t(initial_time), xs(initial_state), Fs(oracles), eta(step), Ks(boundaries),
+    t(initial_time), xs(initial_state), F(oracle), eta(step), Ks(boundaries),
      cs(c_coeffs), phi(basis), grad_phi(grad_basis) {
       dim = xs[0].dimension();
       initialize_matrices();
@@ -127,7 +126,7 @@ public:
 
       for (int i = 0; i < xs.size(); i++) {
         // a0 = F(x0, t0)
-        y = Fs[i](xs, t);
+        y = F(i,xs, t);
 
         if (ord == 0) {
           as[i][0] = xs_prev[i];
@@ -147,7 +146,7 @@ public:
               for (unsigned int j = 0; j < order() - 1; j++) {
                 temp_grad = grad_phi(t, t_prev, order() - j - 1, order());
                 zs[0].set_coord(0, phi(t, t_prev, order() - j - 1, order()));
-                temp_func = Fs[i](zs, t)[0];
+                temp_func = F(i,zs, t)[0];
                 As[i](ord-1, j) = temp_grad - temp_func;
               }
             }
@@ -202,7 +201,7 @@ public:
         for (unsigned int i = 0; i < xs.size(); i++) {
           for (int ord = 1; ord < order(); ord++) {
             t_temp = cs[ord] * eta;
-            y = Fs[i](xs, t_temp);
+            y = F(i,xs, t_temp);
             Bs[i].row(ord-1) = y.getCoefficients().transpose();
           }
         }

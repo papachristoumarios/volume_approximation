@@ -40,8 +40,8 @@ struct HamiltonianMonteCarloWalk {
 
     typedef std::vector<Point> pts;
     typedef typename Point::FT NT;
-    typedef std::function <Point(pts&, NT&)> func;
-    typedef std::vector<func> funcs;
+    
+
     typedef std::vector<Polytope*> bounds;
 
     // Use Leapfrog ODE solver (other solvers can be used as well)
@@ -64,7 +64,7 @@ struct HamiltonianMonteCarloWalk {
 
     // Function oracles Fs[0] contains grad_K = x
     // Fs[1] contains - grad f(x)
-    funcs Fs;
+
 
     // Helper variables
     NT H, H_tilde, log_prob, u_logprob;

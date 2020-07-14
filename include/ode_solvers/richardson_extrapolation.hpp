@@ -12,11 +12,11 @@
 #define RICHARDSON_EXTRAPOLATION_HPP
 
 
-template <typename Point, typename NT, class Polytope, class func=std::function <Point(std::vector<Point>&, NT&)>>
+template <typename Point, typename NT, class Polytope, class func>
 class RichardsonExtrapolationODESolver {
 public:
   typedef std::vector<Point> pts;
-  typedef std::vector<func> funcs;
+
   typedef std::vector<Polytope*> bounds;
   typedef std::vector<NT> coeffs;
   typedef std::vector<coeffs> scoeffs;
@@ -36,9 +36,9 @@ public:
   Point num, y;
   VT Ar, Av;
 
-  RKODESolver<Point, NT, Polytope> *solver;
+  RKODESolver<Point, NT, Polytope, func> *solver;
 
-  funcs Fs;
+  func F;
   bounds Ks;
 
   // Contains the sub-states
@@ -55,15 +55,15 @@ public:
   int prev_facet = -1;
 
   RichardsonExtrapolationODESolver(NT initial_time, NT step, pts initial_state,
-    funcs oracles, bounds boundaries) :
-    t(initial_time), xs(initial_state), Fs(oracles), eta(step), Ks(boundaries) {
+    func oracle, bounds boundaries) :
+    t(initial_time), xs(initial_state), F(oracle), eta(step), Ks(boundaries) {
       dim = xs[0].dimension();
       A = ptsm(MAX_TRIES+1, ptsv(MAX_TRIES+1, pts(xs.size())));
       initialize_solver();
     };
 
   void initialize_solver() {
-    solver = new RKODESolver<Point, NT, Polytope>(t, eta, xs, Fs, bounds{NULL});
+    solver = new RKODESolver<Point, NT, Polytope, func>(t, eta, xs, F, bounds{NULL});
   }
 
   void step() {

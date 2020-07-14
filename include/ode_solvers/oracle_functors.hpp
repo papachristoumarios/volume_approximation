@@ -18,7 +18,7 @@ struct IsotropicQuadraticFunctor {
       typename NT
   >
   struct parameters {
-    NT alpha = NT(-1);
+    NT alpha = NT(1);
     int order = 1;
   };
 
@@ -32,15 +32,17 @@ struct IsotropicQuadraticFunctor {
 
     parameters<NT> params;
 
+    GradientFunctor() {};
+
     GradientFunctor(parameters<NT> &params_) {
       params.order = params_.order;
       params.alpha = params_.alpha;
     };
 
     // The index i represents the state vector index
-    Point operator() (unsigned int const& i, pts const &xs, NT const& t) const {
+    Point operator() (unsigned int const& i, pts const& xs, NT const& t) const {
       if (i == params.order - 1) {
-        return params.alpha * xs[0]; // returns a * x
+        return (-params.alpha) * xs[0]; // returns - a*x
       } else {
         return xs[i + 1]; // returns derivative
       }

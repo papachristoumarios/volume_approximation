@@ -11,11 +11,11 @@
 #ifndef LEAPFROG_HPP
 #define LEAPFROG_HPP
 
-template <typename Point, typename NT, class Polytope, class func=std::function <Point(std::vector<Point>&, NT&)>>
+template <typename Point, typename NT, class Polytope, class func>
 class LeapfrogODESolver {
 public:
   typedef std::vector<Point> pts;
-  typedef std::vector<func> funcs;
+
   typedef std::vector<Polytope*> bounds;
   typedef typename Polytope::VT VT;
 
@@ -26,15 +26,15 @@ public:
   NT eta;
   NT t;
 
-  funcs Fs;
+  func F;
   bounds Ks;
 
   // Contains the sub-states
   pts xs;
   pts xs_prev;
 
-  LeapfrogODESolver(NT initial_time, NT step, pts initial_state, funcs oracles, bounds boundaries) :
-    t(initial_time), xs(initial_state), Fs(oracles), eta(step), Ks(boundaries) {
+  LeapfrogODESolver(NT initial_time, NT step, pts initial_state, func oracle, bounds boundaries) :
+    t(initial_time), xs(initial_state), F(oracle), eta(step), Ks(boundaries) {
       dim = xs[0].dimension();
     };
 
@@ -48,7 +48,7 @@ public:
       v_index = i;
 
       // v' <- v + eta / 2 F(x)
-      Point z = Fs[v_index](xs_prev, t);
+      Point z = F(v_index, xs_prev, t);
       z = (eta / 2) * z;
       xs[v_index] = xs[v_index] + z;
 
@@ -57,7 +57,7 @@ public:
       y = (eta) * y;
 
       // tilde v <- v + eta / 2 F(x)
-      z = Fs[v_index](xs, t);
+      z = F(v_index, xs, t);
       z = (eta / 2) * z;
       xs[v_index] = xs[v_index] + z;
 

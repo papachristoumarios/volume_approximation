@@ -30,26 +30,22 @@
 #include "volume/volume_cooling_balls.hpp"
 #include "generators/known_polytope_generators.h"
 
-
 template <typename NT>
 void test_euler(){
     typedef Cartesian<NT>    Kernel;
     typedef typename Kernel::Point    Point;
     typedef std::vector<Point> pts;
-    typedef std::function<Point(pts&, NT&)> func;
-    typedef std::vector<func> funcs;
     typedef HPolytope<Point>  Hpolytope;
     typedef std::vector<Hpolytope*> bounds;
+    typedef IsotropicQuadraticFunctor::GradientFunctor<Point> func;
+		func F;
 
-    funcs Fs;
-    func F = [](pts &xs, NT &t) { return (-1.0) * xs[0]; };
-    Fs.push_back(F);
     Point q0 = Point(1);
     q0.set_coord(0, 0.5);
     pts q;
     q.push_back(q0);
-    EulerODESolver<Point, NT, Hpolytope> euler_solver =
-      EulerODESolver<Point, NT, Hpolytope>(0, 0.01, q, Fs, bounds{NULL});
+    EulerODESolver<Point, NT, Hpolytope, func> euler_solver =
+      EulerODESolver<Point, NT, Hpolytope, func>(0, 0.01, q, F, bounds{NULL});
     euler_solver.steps(1000);
     NT err=0.001;
     NT error = euler_solver.xs[0].dot(euler_solver.xs[0]);
@@ -61,20 +57,17 @@ void test_bs(){
     typedef Cartesian<NT>    Kernel;
     typedef typename Kernel::Point    Point;
     typedef std::vector<Point> pts;
-    typedef std::function<Point(pts&, NT&)> func;
-    typedef std::vector<func> funcs;
     typedef HPolytope<Point>  Hpolytope;
     typedef std::vector<Hpolytope*> bounds;
+    typedef IsotropicQuadraticFunctor::GradientFunctor<Point> func;
+    func F;
 
-    funcs Fs;
-    func F = [](pts &xs, NT &t) { return (-1.0) * xs[0]; };
-    Fs.push_back(F);
     Point q0 = Point(1);
     q0.set_coord(0, 0.5);
     pts q;
     q.push_back(q0);
-    RichardsonExtrapolationODESolver<Point, NT, Hpolytope> bs_solver =
-      RichardsonExtrapolationODESolver<Point, NT, Hpolytope>(0, 0.1, q, Fs, bounds{NULL});
+    RichardsonExtrapolationODESolver<Point, NT, Hpolytope, func> bs_solver =
+      RichardsonExtrapolationODESolver<Point, NT, Hpolytope, func>(0, 0.1, q, F, bounds{NULL});
     bs_solver.steps(1000);
 
     NT err=0.001;
@@ -82,25 +75,23 @@ void test_bs(){
     CHECK(error < err);
 }
 
-
 template <typename NT>
 void test_rk4(){
     typedef Cartesian<NT>    Kernel;
     typedef typename Kernel::Point    Point;
     typedef std::vector<Point> pts;
-    typedef std::function<Point(pts&, NT&)> func;
-    typedef std::vector<func> funcs;
     typedef HPolytope<Point>  Hpolytope;
     typedef std::vector<Hpolytope*> bounds;
-    funcs Fs;
-    func F = [](pts &xs, NT &t) { return (-1.0) * xs[0]; };
-    Fs.push_back(F);
+
+    typedef IsotropicQuadraticFunctor::GradientFunctor<Point> func;
+		func F;
+
     Point q0 = Point(1);
     q0.set_coord(0, 1.0);
     pts q;
     q.push_back(q0);
-    RKODESolver<Point, NT, Hpolytope> rk_solver =
-      RKODESolver<Point, NT, Hpolytope>(0, 0.1, q, Fs, bounds{NULL});
+    RKODESolver<Point, NT, Hpolytope, func> rk_solver =
+      RKODESolver<Point, NT, Hpolytope, func>(0, 0.1, q, F, bounds{NULL});
     rk_solver.steps(1000);
 
     NT err=0.001;
@@ -108,20 +99,20 @@ void test_rk4(){
     CHECK(error < err);
 }
 
-
 template <typename NT>
 void test_leapfrog_constrained(){
     typedef Cartesian<NT>    Kernel;
     typedef typename Kernel::Point    Point;
     typedef std::vector<Point> pts;
-    typedef std::function<Point(pts&, NT&)> func;
-    typedef std::vector<func> funcs;
     typedef HPolytope<Point>  Hpolytope;
     typedef std::vector<Hpolytope*> bounds;
-    funcs Fs;
-    func F = [](pts &xs, NT &t) { return (-2.0) * xs[0]; };
-    Fs.push_back(F);
-    Fs.push_back(F);
+    typedef IsotropicQuadraticFunctor::GradientFunctor<Point> func;
+
+    IsotropicQuadraticFunctor::parameters<NT> params;
+    params.order = 2;
+    params.alpha = NT(2);
+
+		func F(params);
 
     // Solve in P x R for
     Hpolytope P = gen_cube<Hpolytope>(1, true);
@@ -132,8 +123,8 @@ void test_leapfrog_constrained(){
     x0.set_coord(0, 0);
     v0.set_coord(0, 2.0);
     pts q{x0, v0};
-    LeapfrogODESolver<Point, NT, Hpolytope> leapfrog_solver =
-      LeapfrogODESolver<Point, NT, Hpolytope>(0, 0.1, q, Fs, Ks);
+    LeapfrogODESolver<Point, NT, Hpolytope, func> leapfrog_solver =
+      LeapfrogODESolver<Point, NT, Hpolytope, func>(0, 0.1, q, F, Ks);
 
     for (int i = 0; i < 1000; i++) {
       leapfrog_solver.step();
@@ -141,28 +132,29 @@ void test_leapfrog_constrained(){
     }
 
 }
+
 
 template <typename NT>
 void test_leapfrog(){
     typedef Cartesian<NT>    Kernel;
     typedef typename Kernel::Point    Point;
     typedef std::vector<Point> pts;
-    typedef std::function<Point(pts&, NT&)> func;
-    typedef std::vector<func> funcs;
     typedef HPolytope<Point>  Hpolytope;
     typedef std::vector<Hpolytope*> bounds;
 
-    funcs Fs;
-    func F = [](pts &xs, NT &t) { return (-1.0) * xs[0]; };
-    Fs.push_back(F);
-    Fs.push_back(F);
+    IsotropicQuadraticFunctor::parameters<NT> params;
+    params.order = 2;
+
+    typedef IsotropicQuadraticFunctor::GradientFunctor<Point> func;
+		func F(params);
+
     Point x0 = Point(1);
     Point v0 = Point(1);
     x0.set_coord(0, 0);
     v0.set_coord(0, 1.0);
     pts q{x0, v0};
-    LeapfrogODESolver<Point, NT, Hpolytope> leapfrog_solver =
-      LeapfrogODESolver<Point, NT, Hpolytope>(0, 0.01, q, Fs, bounds{NULL, NULL});
+    LeapfrogODESolver<Point, NT, Hpolytope, func> leapfrog_solver =
+      LeapfrogODESolver<Point, NT, Hpolytope, func>(0, 0.01, q, F, bounds{NULL, NULL});
 
     for (int i = 0; i < 1000; i++) {
       leapfrog_solver.step();
@@ -171,30 +163,30 @@ void test_leapfrog(){
 
 }
 
-
 template <typename NT>
 void test_euler_constrained(){
     typedef Cartesian<NT>    Kernel;
     typedef typename Kernel::Point    Point;
     typedef std::vector<Point> pts;
-    typedef std::function<Point(pts&, NT&)> func;
-    typedef std::vector<func> funcs;
     typedef HPolytope<Point>  Hpolytope;
     typedef std::vector<Hpolytope*> bounds;
-    funcs Fs;
-    bounds Ks;
-    func F = [](pts &xs, NT &t) { return xs[0]; };
-    Fs.push_back(F);
+    typedef IsotropicQuadraticFunctor::GradientFunctor<Point> func;
 
-    Hpolytope P = gen_cube<Hpolytope>(1, true);
+    IsotropicQuadraticFunctor::parameters<NT> params;
+    params.alpha = NT(-1);
+    func F(params);
+
+    bounds Ks;
+
+    Hpolytope P = gen_cube<Hpolytope>(1, false);
     Ks.push_back(&P);
 
     Point q0 = Point(1);
     q0.set_coord(0, 0.5);
     pts q;
     q.push_back(q0);
-    EulerODESolver<Point, NT, Hpolytope> euler_solver =
-      EulerODESolver<Point, NT, Hpolytope>(0, 0.001, q, Fs, Ks);
+    EulerODESolver<Point, NT, Hpolytope, func> euler_solver =
+      EulerODESolver<Point, NT, Hpolytope, func>(0, 0.001, q, F, Ks);
     euler_solver.steps(1000);
 
     NT err=0.01;
@@ -208,14 +200,15 @@ void test_bs_constrained(){
     typedef Cartesian<NT>    Kernel;
     typedef typename Kernel::Point    Point;
     typedef std::vector<Point> pts;
-    typedef std::function<Point(pts&, NT&)> func;
-    typedef std::vector<func> funcs;
     typedef HPolytope<Point>  Hpolytope;
     typedef std::vector<Hpolytope*> bounds;
-    funcs Fs;
+    typedef IsotropicQuadraticFunctor::GradientFunctor<Point> func;
+    IsotropicQuadraticFunctor::parameters<NT> params;
+    params.alpha = NT(-1);
+    func F(params);
+
     bounds Ks;
-    func F = [](pts &xs, NT &t) { return xs[0]; };
-    Fs.push_back(F);
+
 
     Hpolytope P = gen_cube<Hpolytope>(1, true);
     Ks.push_back(&P);
@@ -224,7 +217,7 @@ void test_bs_constrained(){
     q0.set_coord(0, 0.5);
     pts q;
     q.push_back(q0);
-    RichardsonExtrapolationODESolver<Point, NT, Hpolytope> bs_solver = RichardsonExtrapolationODESolver<Point, NT, Hpolytope>(0, 0.01, q, Fs, Ks);
+    RichardsonExtrapolationODESolver<Point, NT, Hpolytope, func> bs_solver = RichardsonExtrapolationODESolver<Point, NT, Hpolytope, func>(0, 0.01, q, F, Ks);
 
     bs_solver.steps(1000);
 
@@ -234,28 +227,27 @@ void test_bs_constrained(){
     CHECK(error < err);
 }
 
-
 template <typename NT>
 void test_rk4_constrained(){
     typedef Cartesian<NT>    Kernel;
     typedef typename Kernel::Point    Point;
     typedef std::vector<Point> pts;
-    typedef std::function<Point(pts&, NT&)> func;
-    typedef std::vector<func> funcs;
     typedef HPolytope<Point>  Hpolytope;
     typedef std::vector<Hpolytope*> bounds;
-    funcs Fs;
-    func F = [](pts &xs, NT &t) { return  xs[0]; };
-    Fs.push_back(F);
+    typedef IsotropicQuadraticFunctor::GradientFunctor<Point> func;
+    IsotropicQuadraticFunctor::parameters<NT> params;
+    params.alpha = NT(-1);
+    func F(params);
+
     Point q0 = Point(1);
     q0.set_coord(0, 0.2);
     pts q;
     q.push_back(q0);
 
-    Hpolytope P = gen_cube<Hpolytope>(1, true);
+    Hpolytope P = gen_cube<Hpolytope>(1, false);
 
     bounds Ks{&P};
-    RKODESolver<Point, NT, Hpolytope> rk_solver = RKODESolver<Point, NT, Hpolytope>(0, 0.01, q, Fs, Ks);
+    RKODESolver<Point, NT, Hpolytope, func> rk_solver = RKODESolver<Point, NT, Hpolytope, func>(0, 0.01, q, F, Ks);
 
     rk_solver.steps(1000);
 
@@ -265,45 +257,30 @@ void test_rk4_constrained(){
     CHECK(error < err);
 }
 
-
 template <typename NT>
-void test_euler_2d_constrained(){
+void test_euler_2d(){
     typedef Cartesian<NT>    Kernel;
     typedef typename Kernel::Point    Point;
     typedef std::vector<Point> pts;
-    typedef std::function<Point(pts&, NT&)> func;
-    typedef std::vector<func> funcs;
     typedef HPolytope<Point>  Hpolytope;
     typedef std::vector<Hpolytope*> bounds;
-    funcs Fs;
+    typedef IsotropicQuadraticFunctor::GradientFunctor<Point> func;
+
     bounds Ks;
-    func F = [](pts &xs, NT &t) {
-        Point y(xs[0].dimension());
-        // y.set_coord(0, 2 * (xs[0][0] - 1 / 3 * pow(xs[0][0], 3) - xs[0][1]));
-        // y.set_coord(1, (1 / 2) * xs[0][0]);
-        y.set_coord(0, (1) * xs[0][1]);
-        y.set_coord(1, (-1.0) * xs[0][0]);
-
-        return y;
-     };
-
-    Fs.push_back(F);
-
-    Hpolytope P = gen_cube<Hpolytope>(2, true);
-    Ks.push_back(&P);
-
+    IsotropicQuadraticFunctor::parameters<NT> params;
+    params.order = 2;
+    func F(params);
     Point q0 = Point(2);
     q0.set_coord(0, 0.2);
     q0.set_coord(1, 0.2);
     pts q;
     q.push_back(q0);
-    EulerODESolver<Point, NT, Hpolytope> euler_solver = EulerODESolver<Point, NT, Hpolytope>(0, 0.1, q, Fs, Ks);
+    EulerODESolver<Point, NT, Hpolytope, func> euler_solver =
+      EulerODESolver<Point, NT, Hpolytope, func>(0, 0.1, q, F, bounds{NULL});
     euler_solver.steps(1000);
     CHECK(euler_solver.xs[0].dot(euler_solver.xs[0]) < 1.1);
 
 }
-
-
 
 template <typename NT>
 void call_test_first_order() {
@@ -318,21 +295,18 @@ void call_test_first_order() {
   test_rk4_constrained<NT>();
   test_bs_constrained<NT>();
 
-  std::cout << "--- Testing solution to dx / dt = v, dv / dt = -x in [-1, 1]^2" << std::endl;
-  test_euler_2d_constrained<NT>();
-
 }
 
 template <typename NT>
 void call_test_second_order() {
   std::cout << "--- Testing solution to d^2x / dt^2 = -x" << std::endl;
   test_leapfrog<NT>();
-  //
+
+  std::cout << "--- Testing solution to dx / dt = v, dv / dt = -x w/ Euler" << std::endl;
+  test_euler_2d<NT>();
+
   std::cout << "--- Testing solution to d^2x / dt^2 = x in [-1, 1]" << std::endl;
   test_leapfrog_constrained<NT>();
-
-  std::cout << "--- Testing solution to dx / dt = v, dv / dt = -x in [-1, 1]^2" << std::endl;
-  test_euler_2d_constrained<NT>();
 
 }
 
@@ -351,16 +325,15 @@ void test_collocation(){
     typedef Cartesian<NT>    Kernel;
     typedef typename Kernel::Point    Point;
     typedef std::vector<Point> pts;
-    typedef std::function<Point(pts&, NT&)> func;
+
     typedef std::function<NT(NT, NT, unsigned int, unsigned int)> bfunc;
     typedef std::vector<NT> coeffs;
-    typedef std::vector<func> funcs;
+
     typedef HPolytope<Point>  Hpolytope;
     typedef std::vector<Hpolytope*> bounds;
+    typedef IsotropicQuadraticFunctor::GradientFunctor<Point> func;
+		func F;
 
-    funcs Fs;
-    func F = [](pts &xs, NT &t) { return (-1.0) * xs[0]; };
-    Fs.push_back(F);
     Point q0 = Point(1);
     q0.set_coord(0, 1.0);
     pts q;
@@ -376,11 +349,9 @@ void test_collocation(){
 
     // Trapezoidal collocation
     coeffs cs{0.0, 0.0, 1.0};
-
-
     CollocationODESolver<Point, NT, Hpolytope, bfunc> c_solver =
       CollocationODESolver<Point, NT, Hpolytope, bfunc>
-      (0, 1.0, q, Fs, bounds{NULL}, cs, phi, grad_phi);
+      (0, 1.0, q, F, bounds{NULL}, cs, phi, grad_phi);
     c_solver.steps(100);
     NT err=0.001;
     NT error = c_solver.xs[0].dot(c_solver.xs[0]);
@@ -392,21 +363,20 @@ void test_integral_collocation(){
     typedef Cartesian<NT>    Kernel;
     typedef typename Kernel::Point    Point;
     typedef std::vector<Point> pts;
-    typedef std::function<Point(pts&, NT&)> func;
+
     typedef std::vector<NT> coeffs;
-    typedef std::vector<func> funcs;
+
     typedef HPolytope<Point>  Hpolytope;
     typedef std::vector<Hpolytope*> bounds;
+    typedef IsotropicQuadraticFunctor::GradientFunctor<Point> func;
+		func F;
 
-    funcs Fs;
-    func F = [](pts &xs, NT &t) { return (-1.0) * xs[0]; };
-    Fs.push_back(F);
     Point q0 = Point(1);
     q0.set_coord(0, 1.0);
     pts q;
     q.push_back(q0);
 
-    IntegralCollocationODESolver<Point, NT, Hpolytope> c_solver = IntegralCollocationODESolver<Point, NT, Hpolytope>(0, 0.1, q, Fs, bounds{NULL}, 4);
+    IntegralCollocationODESolver<Point, NT, Hpolytope, func> c_solver = IntegralCollocationODESolver<Point, NT, Hpolytope, func>(0, 0.1, q, F, bounds{NULL}, 4);
     c_solver.steps(100);
     NT err=0.001;
     NT error = c_solver.xs[0].dot(c_solver.xs[0]);
@@ -418,16 +388,16 @@ void test_collocation_constrained(){
     typedef Cartesian<NT>    Kernel;
     typedef typename Kernel::Point    Point;
     typedef std::vector<Point> pts;
-    typedef std::function<Point(pts&, NT&)> func;
-    typedef std::vector<func> funcs;
     typedef std::function<NT(NT, NT, unsigned int, unsigned int)> bfunc;
     typedef std::vector<NT> coeffs;
     typedef HPolytope<Point>  Hpolytope;
     typedef std::vector<Hpolytope*> bounds;
-    funcs Fs;
+    typedef IsotropicQuadraticFunctor::GradientFunctor<Point> func;
+    IsotropicQuadraticFunctor::parameters<NT> params;
+    params.alpha = NT(-1);
+    func F(params);
+
     bounds Ks;
-    func F = [](pts &xs, NT &t) { return xs[0]; };
-    Fs.push_back(F);
 
     Hpolytope P = gen_cube<Hpolytope>(1, false);
     Ks.push_back(&P);
@@ -449,10 +419,8 @@ void test_collocation_constrained(){
     q.push_back(q0);
     CollocationODESolver<Point, NT, Hpolytope, bfunc> c_solver =
       CollocationODESolver<Point, NT, Hpolytope, bfunc>
-      (0, 0.05, q, Fs, Ks, cs, phi, grad_phi);
+      (0, 0.05, q, F, Ks, cs, phi, grad_phi);
     c_solver.steps(1000);
-
-
     NT err=0.1;
     NT target = 1.0;
     NT error = std::abs((c_solver.xs[0].dot(c_solver.xs[0]) - target) / target);

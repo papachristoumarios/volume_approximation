@@ -85,7 +85,7 @@ struct UnderdampedLangevinWalk {
 
     typedef std::vector<Point> pts;
     typedef typename Point::FT NT;
-    typedef std::function <Point(pts&, NT&)> func;
+    
     typedef LangevinStochasticFunction<NT, Point, RandomNumberGenerator, func> sfunc;
     typedef std::vector<sfunc> sfuncs;
     typedef std::vector<Polytope*> bounds;
@@ -105,7 +105,7 @@ struct UnderdampedLangevinWalk {
 
     // Function oracles Fs[0] contains grad_K = x
     // Fs[1] contains - grad f(x)
-    sfuncs Fs;
+    s
     std::function<NT(Point)> f;
 
     NT H_tilde, H, log_prob, u_logprob;
