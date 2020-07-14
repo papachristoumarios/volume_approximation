@@ -32,6 +32,10 @@
       4. Fs: A vector of oracles F_i for 1 <= i <= n
       5. eta: Step size
       6. t: Temporal variable
+
+  TODO:     
+      1. Change std::function with functors
+      2. Change datastructure of boundaries
 */
 
 #include <iostream>
