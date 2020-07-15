@@ -11,9 +11,9 @@
 #ifndef LEAPFROG_HPP
 #define LEAPFROG_HPP
 
-template <typename Point, typename NT, class Polytope, class func>
-class LeapfrogODESolver {
-public:
+template <typename Point, typename NT, typename Polytope, typename func>
+struct LeapfrogODESolver {
+
   typedef std::vector<Point> pts;
 
   typedef std::vector<Polytope*> bounds;

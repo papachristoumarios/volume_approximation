@@ -12,9 +12,9 @@
 #define RICHARDSON_EXTRAPOLATION_HPP
 
 
-template <typename Point, typename NT, class Polytope, class func>
-class RichardsonExtrapolationODESolver {
-public:
+template <typename Point, typename NT, typename Polytope, typename func>
+struct RichardsonExtrapolationODESolver {
+
   typedef std::vector<Point> pts;
 
   typedef std::vector<Polytope*> bounds;

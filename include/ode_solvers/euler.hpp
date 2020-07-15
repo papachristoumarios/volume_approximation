@@ -11,9 +11,9 @@
 #ifndef EULER_HPP
 #define EULER_HPP
 
-template <typename Point, typename NT, class Polytope, class func>
-class EulerODESolver {
-public:
+template <typename Point, typename NT, typename Polytope, typename func>
+struct EulerODESolver {
+
   typedef std::vector<Point> pts;
   typedef std::vector<Polytope*> bounds;
   typedef typename Polytope::VT VT;

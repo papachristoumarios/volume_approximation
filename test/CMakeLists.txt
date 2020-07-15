@@ -186,7 +186,7 @@ else ()
   add_test(NAME new_rounding_test_round_skinny_cube
            COMMAND new_rounding_test -tc=round_skinny_cube)
 
-  add_executable (hmc_test hmc_test.cpp $<TARGET_OBJECTS:test_main>)
+  add_executable (logconcave_sampling_test logconcave_sampling_test.cpp $<TARGET_OBJECTS:test_main>)
 
 
   TARGET_LINK_LIBRARIES(new_volume_example ${LP_SOLVE})
@@ -205,6 +205,6 @@ else ()
   TARGET_LINK_LIBRARIES(ode_solvers_test ${LP_SOLVE} ${IFOPT} ${IFOPT_IPOPT} ${PTHREAD} ${GMP} ${MPSOLVE} ${FFTW3})
   TARGET_LINK_LIBRARIES(boundary_oracles_test ${LP_SOLVE} ${IFOPT} ${IFOPT_IPOPT} ${PTHREAD} ${GMP} ${MPSOLVE})
   TARGET_LINK_LIBRARIES(root_finders_test ${PTHREAD} ${GMP} ${MPSOLVE})
-  TARGET_LINK_LIBRARIES(hmc_test ${LP_SOLVE} ${IFOPT} ${IFOPT_IPOPT} ${PTHREAD} ${GMP} ${MPSOLVE})
+  TARGET_LINK_LIBRARIES(logconcave_sampling_test ${LP_SOLVE} ${IFOPT} ${IFOPT_IPOPT} ${PTHREAD} ${GMP} ${MPSOLVE})
 
 endif()

@@ -19,7 +19,7 @@ struct IsotropicQuadraticFunctor {
   >
   struct parameters {
     NT alpha = NT(1);
-    int order = 1;
+    unsigned int order = 1;
   };
 
   template
@@ -58,6 +58,8 @@ struct IsotropicQuadraticFunctor {
     typedef typename Point::FT NT;
 
     parameters<NT> params;
+
+    FunctionFunctor() {};
 
     FunctionFunctor(parameters<NT> &params_) {
       params.order = params_.order;

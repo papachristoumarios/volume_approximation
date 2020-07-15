@@ -33,19 +33,19 @@ struct HamiltonianMonteCarloWalk {
   template
   <
     typename Point,
-    class Polytope,
-    class RandomNumberGenerator
+    typename Polytope,
+    typename RandomNumberGenerator,
+    typename neg_gradient_func,
+    typename neg_logprob_func
   >
   struct Walk {
 
     typedef std::vector<Point> pts;
     typedef typename Point::FT NT;
-    
-
     typedef std::vector<Polytope*> bounds;
 
     // Use Leapfrog ODE solver (other solvers can be used as well)
-    typedef LeapfrogODESolver<Point, NT, Polytope> Solver;
+    typedef LeapfrogODESolver<Point, NT, Polytope, neg_gradient_func> Solver;
 
     // Hyperparameters of the sampler
     parameters<NT> params;
@@ -62,21 +62,19 @@ struct HamiltonianMonteCarloWalk {
     // Proposal points
     Point x_tilde, v_tilde;
 
-    // Function oracles Fs[0] contains grad_K = x
-    // Fs[1] contains - grad f(x)
-
+    // Gradient function
+    neg_gradient_func F;
 
     // Helper variables
     NT H, H_tilde, log_prob, u_logprob;
 
     // Density exponent
-    std::function<NT(Point)> f;
+    neg_logprob_func f;
 
     Walk(Polytope *P,
       Point &p,
-      func neg_grad_f,
-      std::function<NT(Point)>
-      density_exponent,
+      neg_gradient_func neg_grad_f,
+      neg_logprob_func density_exponent,
       parameters<NT> &param)
     {
       initialize(P, p, neg_grad_f, density_exponent, param);
@@ -84,9 +82,8 @@ struct HamiltonianMonteCarloWalk {
 
     void initialize(Polytope *P,
       Point &p,
-      func neg_grad_f,
-      std::function<NT(Point)>
-      density_exponent,
+      neg_gradient_func neg_grad_f,
+      neg_logprob_func density_exponent,
       parameters<NT> &param)
     {
       // ODE related-stuff
@@ -95,11 +92,9 @@ struct HamiltonianMonteCarloWalk {
       params.eta = 1.0 /
         sqrt(20 * params.L);
 
-      // Define Kinetic and Potential Energy gradient updates
-      // Kinetic energy gradient grad_K = v
-      func temp_grad_K = [](pts &xs, NT &t) { return xs[1]; };
-      Fs.push_back(temp_grad_K);
-      Fs.push_back(neg_grad_f);
+      // Set order to 2
+      F = neg_grad_f;
+      F.params.order = 2;
 
       // Define exp(-f(x)) where f(x) is convex
       f = density_exponent;
@@ -109,7 +104,7 @@ struct HamiltonianMonteCarloWalk {
       dim = p.dimension();
 
       // Initialize solver
-      solver = new Solver(0, params.eta, pts{x, x}, Fs, bounds{P, NULL});
+      solver = new Solver(0, params.eta, pts{x, x}, F, bounds{P, NULL});
 
     };
 

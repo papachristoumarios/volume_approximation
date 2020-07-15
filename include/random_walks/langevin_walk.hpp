@@ -19,43 +19,38 @@ template
 <
   typename NT,
   typename Point,
-  class RandomNumberGenerator,
-  class func
+  typename RandomNumberGenerator,
+  typename func
 >
-struct LangevinStochasticFunction {
+struct LangevinStochasticFunctor {
 
   typedef std::vector<Point> pts;
 
-  NT a, b, c;
-  int index;
+  std::vector<NT> a, b, c;
   RandomNumberGenerator rng;
   func f;
-
   Point dw;
 
-  LangevinStochasticFunction(
+  LangevinStochasticFunctor(
     func f_,
-    NT a_ = NT(0),
-    NT b_ = NT(1),
-    NT c_ = NT(0),
-    int index_ = 0) :
+    std::vector<NT> a_,
+    std::vector<NT> b_,
+    std::vector<NT> c_) :
     f(f_),
-    a(a_), // Self multiplier
-    b(b_), // Oracle multiplier
-    c(c_), // Brownian motion multiplier
-    index(index_) {
+    a(a_), // Self multipliers
+    b(b_), // Oracle multipliers
+    c(c_) // Brownian motion multipliers
+    {
       rng = RandomNumberGenerator(1);
     }
 
-  Point operator() (pts xs, NT t) {
-    Point res(xs[index].dimension());
-    dw = GetDirection<Point>::apply(xs[index].dimension(), rng, false);
-    res = res + a * xs[index];
-    res = res + b * f(xs, t);
-    res = res + c * dw;
-
+  Point operator() (unsigned int &i, pts const& xs, NT const& t) const {
+    Point res(xs[i].dimension());
+    dw = GetDirection<Point>::apply(xs[i].dimension(), rng, false);
+    res = res + a[i] * xs[i];
+    res = res + b[i] * f(i, xs, t);
+    res = res + c[i] * dw;
     return res;
-
   }
 
 };
@@ -78,15 +73,16 @@ struct UnderdampedLangevinWalk {
   template
   <
     typename Point,
-    class Polytope,
-    class RandomNumberGenerator
+    typename Polytope,
+    typename RandomNumberGenerator,
+    typename neg_gradient_func,
+    typename neg_logprob_func
   >
   struct Walk {
 
     typedef std::vector<Point> pts;
     typedef typename Point::FT NT;
-    
-    typedef LangevinStochasticFunction<NT, Point, RandomNumberGenerator, func> sfunc;
+    typedef LangevinStochasticFunctor<NT, Point, RandomNumberGenerator, neg_gradient_func> sfunc;
     typedef std::vector<sfunc> sfuncs;
     typedef std::vector<Polytope*> bounds;
     typedef LeapfrogODESolver<Point, NT, Polytope, sfunc> Solver;
@@ -103,19 +99,19 @@ struct UnderdampedLangevinWalk {
     // Proposal points
     Point x_tilde, v_tilde;
 
-    // Function oracles Fs[0] contains grad_K = x
-    // Fs[1] contains - grad f(x)
-    s
-    std::function<NT(Point)> f;
+    // Gradient Function
+    neg_gradient_func F;
+
+    // Density exponent
+    neg_logprob_func f;
 
     NT H_tilde, H, log_prob, u_logprob;
 
     Walk(Polytope *P,
       Point &initial_x,
       Point &initial_v,
-      func neg_grad_f,
-      std::function<NT(Point)>
-      density_exponent,
+      neg_gradient_func neg_grad_f,
+      neg_logprob_func density_exponent,
       parameters<NT> &param)
     {
       initialize(P, initial_x, initial_v, neg_grad_f, density_exponent, param);
@@ -124,9 +120,8 @@ struct UnderdampedLangevinWalk {
     void initialize(Polytope *P,
       Point &initial_x,
       Point &initial_v,
-      func neg_grad_f,
-      std::function<NT(Point)>
-      density_exponent,
+      neg_gradient_func neg_grad_f,
+      neg_logprob_func density_exponent,
       parameters<NT> &param)
     {
 
@@ -138,16 +133,12 @@ struct UnderdampedLangevinWalk {
 
       params.u = 1.0 / params.L;
 
-      // Define Kinetic and Potential Energy gradient updates
-      // Kinetic energy gradient grad_K = v
-      func temp_grad_K = [](pts xs, NT t) { return xs[1]; };
+      // Stochastic function multipliers
+      std::vector<NT> a{NT(0), NT(-2)};
+      std::vector<NT> b{NT(1), NT(params.u)};
+      std::vector<NT> c{NT(0), NT(2 * sqrt(params.u))};
 
-      sfunc stoch_temp_grad_K(temp_grad_K, NT(0), NT(1), NT(0), 0);
-      sfunc stoch_neg_grad_f(neg_grad_f, NT(-2), NT(params.u), NT(2 * sqrt(params.u)), 1);
-
-
-      Fs.push_back(stoch_temp_grad_K);
-      Fs.push_back(stoch_neg_grad_f);
+      sfunc F(neg_grad_f, a, b, c);
 
       // Define exp(-f(x)) where f(x) is convex
       f = density_exponent;
@@ -159,7 +150,7 @@ struct UnderdampedLangevinWalk {
 
       dim = initial_x.dimension();
 
-      solver = new Solver(0, params.eta, pts{initial_x, initial_v}, Fs, bounds{P, NULL});
+      solver = new Solver(0, params.eta, pts{initial_x, initial_v}, F, bounds{P, NULL});
 
     };
 

@@ -17,16 +17,16 @@
 template <
   typename Point,
   typename NT,
-  class Polytope,
-  class bfunc,
-  class func,
-  class NontLinearOracle=MPSolveHPolyoracle<
+  typename Polytope,
+  typename bfunc,
+  typename func,
+  typename NontLinearOracle=MPSolveHPolyoracle<
     Polytope,
     bfunc
   >
 >
-class CollocationODESolver {
-public:
+struct CollocationODESolver {
+
 
   // Vectors of points
   typedef std::vector<Point> pts;
@@ -294,15 +294,5 @@ public:
     xs[index] = p;
   }
 };
-
-template<typename NT>
-NT poly_basis(NT t, NT t0, unsigned int j, unsigned int ord) {
-  return pow(t - t0, (NT) j);
-}
-
-template<typename NT>
-NT poly_basis_grad(NT t, NT t0, unsigned int j, unsigned int ord) {
-  return ((NT) j) * pow(t - t0, (NT) (j - 1));
-}
 
 #endif

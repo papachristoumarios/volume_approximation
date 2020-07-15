@@ -376,7 +376,8 @@ void test_integral_collocation(){
     pts q;
     q.push_back(q0);
 
-    IntegralCollocationODESolver<Point, NT, Hpolytope, func> c_solver = IntegralCollocationODESolver<Point, NT, Hpolytope, func>(0, 0.1, q, F, bounds{NULL}, 4);
+    IntegralCollocationODESolver<Point, NT, Hpolytope, func> c_solver =
+      IntegralCollocationODESolver<Point, NT, Hpolytope, func>(0, 0.1, q, F, bounds{NULL}, 4);
     c_solver.steps(100);
     NT err=0.001;
     NT error = c_solver.xs[0].dot(c_solver.xs[0]);

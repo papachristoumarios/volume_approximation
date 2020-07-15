@@ -27,11 +27,11 @@
 template <
   typename Point,
   typename NT,
-  class Polytope,
-  class func
+  typename Polytope,
+  typename func
 >
-class IntegralCollocationODESolver {
-public:
+struct IntegralCollocationODESolver {
+
 
   // Vectors of points
   typedef std::vector<Point> pts;
