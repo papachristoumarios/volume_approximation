@@ -12,14 +12,18 @@
 [![CircleCI develop](https://circleci.com/gh/GeomScale/volume_approximation/tree/develop.svg?style=shield)](https://circleci.com/gh/GeomScale/volume_approximation/tree/develop)
 [![gcc-test](https://github.com/GeomScale/volume_approximation/workflows/gcc-test/badge.svg)](https://github.com/GeomScale/volume_approximation/actions?query=workflow%3Agcc-test)
 [![clang-test](https://github.com/GeomScale/volume_approximation/workflows/clang-test/badge.svg)](https://github.com/GeomScale/volume_approximation/actions?query=workflow%3Aclang-test)
-[![R-CMD-check](https://github.com/GeomScale/volume_approximation/workflows/R-CMD-check/badge.svg)](https://github.com/GeomScale/volume_approximation/actions?query=workflow%3AR-CMD-check)
+[![R-CMD-check-ubuntu](https://github.com/GeomScale/volume_approximation/workflows/R-CMD-check-ubuntu/badge.svg)](https://github.com/GeomScale/volume_approximation/actions?query=workflow%3AR-CMD-check-ubuntu)
+[![R-CMD-check-macOS](https://github.com/GeomScale/volume_approximation/workflows/R-CMD-check-macOS/badge.svg)](https://github.com/GeomScale/volume_approximation/actions?query=workflow%3AR-CMD-check-macOS)
+[![R-CMD-check-windows](https://github.com/GeomScale/volume_approximation/workflows/R-CMD-check-windows/badge.svg)](https://github.com/GeomScale/volume_approximation/actions?query=workflow%3AR-CMD-check-windows)
 
 ###  Documentation
 
 * [Using the R Interface](doc/r_interface.md)
 * [Using the C++ Interface](doc/cpp_interface.md)
+* [Using the Python Interface](volestipy/README.md)
 * [Wikipage with Tutorials and Demos](https://github.com/GeomScale/volume_approximation/wiki)
 * [Tutorial given to PyData meetup](https://vissarion.github.io/tutorials/volesti_tutorial_pydata.html)
+* [Contributing](CONTRIBUTING.md)
 
 ### Credits
 
