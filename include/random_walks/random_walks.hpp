@@ -16,6 +16,7 @@
 #include "random_walks/uniform_billiard_walk.hpp"
 #include "random_walks/uniform_cdhr_walk.hpp"
 #include "random_walks/uniform_rdhr_walk.hpp"
+#include "random_walks/uniform_accelerated_billiard_walk.hpp"
 #include "random_walks/hamiltonian_monte_carlo_walk.hpp"
 #include "random_walks/langevin_walk.hpp"
 
