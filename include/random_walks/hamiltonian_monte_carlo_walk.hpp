@@ -36,16 +36,14 @@ struct HamiltonianMonteCarloWalk {
     typename Polytope,
     typename RandomNumberGenerator,
     typename neg_gradient_func,
-    typename neg_logprob_func
+    typename neg_logprob_func,
+    typename Solver
   >
   struct Walk {
 
     typedef std::vector<Point> pts;
     typedef typename Point::FT NT;
     typedef std::vector<Polytope*> bounds;
-
-    // Use Leapfrog ODE solver (other solvers can be used as well)
-    typedef LeapfrogODESolver<Point, NT, Polytope, neg_gradient_func> Solver;
 
     // Hyperparameters of the sampler
     parameters<NT> params;
@@ -86,11 +84,13 @@ struct HamiltonianMonteCarloWalk {
       neg_logprob_func density_exponent,
       parameters<NT> &param)
     {
+      dim = p.dimension();
+
       // ODE related-stuff
       params = param;
       params.kappa = params.L / params.m;
       params.eta = 1.0 /
-        sqrt(20 * params.L);
+        sqrt(20 * params.L * pow(dim, 3));
 
       // Set order to 2
       F = neg_grad_f;
@@ -101,7 +101,6 @@ struct HamiltonianMonteCarloWalk {
 
       // Starting point is provided from outside
       x = p;
-      dim = p.dimension();
 
       // Initialize solver
       solver = new Solver(0, params.eta, pts{x, x}, F, bounds{P, NULL});

@@ -197,6 +197,12 @@ public:
         std::cout<<"\n";
     }
 
+    static point all_ones(int dim) {
+      point p(dim);
+      for (int i = 0; i < dim; i++) p.set_coord(i, 1.0);
+      return p;
+    }
+
 };
 
 template<typename K>

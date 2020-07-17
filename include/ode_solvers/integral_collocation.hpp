@@ -25,10 +25,10 @@
 #include "boost/math/special_functions/chebyshev_transform.hpp"
 
 template <
-  typename Point,
-  typename NT,
-  typename Polytope,
-  typename func
+    typename Point,
+    typename NT,
+    typename Polytope,
+    typename func
 >
 struct IntegralCollocationODESolver {
 
@@ -58,7 +58,7 @@ struct IntegralCollocationODESolver {
   bounds Ks;
 
   // Contains the sub-states
-  pts xs, X_temp;
+  pts xs, xs_prev, X_temp;
   Point y;
 
   // Temporal coefficients
@@ -76,7 +76,7 @@ struct IntegralCollocationODESolver {
   Point prev_point;
 
   IntegralCollocationODESolver(NT initial_time, NT step, pts initial_state,
-    func oracle, bounds boundaries, unsigned int order_) :
+    func oracle, bounds boundaries, unsigned int order_=4) :
     t(initial_time), xs(initial_state), X_temp(initial_state), F(oracle), eta(step), Ks(boundaries),
     _order(order_) {
       dim = xs[0].dimension();
@@ -139,13 +139,14 @@ struct IntegralCollocationODESolver {
     for (unsigned int ord = 0; ord < order(); ord++) {
       for (unsigned int i = 0; i < xs.size(); i++) {
         for (unsigned int j = i * dim; j < (i + 1) * dim; j++) {
-          X0(j, ord) = xs[i][j % dim];
+          X0(j, ord) = xs_prev[i][j % dim];
         }
       }
     }
   }
 
   void step() {
+    xs_prev = xs;
     initialize_fixed_point();
 
     X = X0;
@@ -155,14 +156,20 @@ struct IntegralCollocationODESolver {
     do {
       for (unsigned int ord = 0; ord < order(); ord++) {
         for (unsigned int i = 0; i < xs.size(); i++) {
-          X_temp[i] = Point(X.col(ord));
+          for (unsigned int j = i * dim; j < (i + 1) * dim; j++) {
+            X_temp[i].set_coord(j % dim, X(j, ord));
+          }
         }
+
         for (unsigned int i = 0; i < xs.size(); i++) {
+          // std::cout << "pre y" << std::endl;
           temp_node = nodes(ord) * eta;
-          y = F(i,X_temp, temp_node);
+          y = F(i, X_temp, temp_node);
+
           for (int j = i * dim; j < (i + 1) * dim; j++) {
             F_op(j, ord) = y[j % dim];
           }
+
         }
       }
 
@@ -172,7 +179,7 @@ struct IntegralCollocationODESolver {
 
       err = sqrt((X - X_prev).squaredNorm());
 
-    } while (err > 1e-4);
+    } while (err > 1e-10);
 
     X_op = X0.col(0);
 

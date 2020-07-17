@@ -12,7 +12,12 @@
 #define RUNGE_KUTTA_H
 
 
-template <typename Point, typename NT, typename Polytope, typename func>
+template <
+		typename Point,
+		typename NT,
+		typename Polytope,
+		typename func
+>
 struct RKODESolver {
 
   typedef std::vector<Point> pts;

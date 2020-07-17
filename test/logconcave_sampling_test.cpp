@@ -30,12 +30,6 @@
 #include "volume/volume_cooling_balls.hpp"
 #include "generators/known_polytope_generators.h"
 
-template <typename Point>
-Point all_ones(int dim) {
-  Point p(dim);
-  for (int i = 0; i < dim; i++) p.set_coord(i, 1.0);
-  return p;
-}
 
 template <typename NT>
 void test_hmc(){
@@ -46,6 +40,7 @@ void test_hmc(){
     typedef BoostRandomNumberGenerator<boost::mt19937, NT> RandomNumberGenerator;
     typedef IsotropicQuadraticFunctor::GradientFunctor<Point> neg_gradient_func;
     typedef IsotropicQuadraticFunctor::FunctionFunctor<Point> neg_logprob_func;
+    typedef IntegralCollocationODESolver<Point, NT, Hpolytope, neg_gradient_func> Solver;
 
     IsotropicQuadraticFunctor::parameters<NT> params;
     params.order = 2;
@@ -57,79 +52,38 @@ void test_hmc(){
     RandomNumberGenerator rng(1);
 
 
-    HamiltonianMonteCarloWalk::parameters<NT> hmc_params;
+    UnderdampedLangevinWalk::parameters<NT> hmc_params;
     unsigned int dim = 1;
     Hpolytope P = gen_cube<Hpolytope>(dim, false);
     Point x0(dim);
+    Point v0(dim);
 
-    HamiltonianMonteCarloWalk::Walk
+    UnderdampedLangevinWalk::Walk
       <Point, Hpolytope, RandomNumberGenerator, neg_gradient_func, neg_logprob_func>
-      hmc(&P, x0, F, f, hmc_params);
+      hmc(NULL, x0, v0, F, f, hmc_params);
 
+    Point sum(dim);
+    int n_samples = 15000;
 
-    for (int i = 0; i < 20000; i++) {
-      hmc.apply(rng);
-      std::cout << hmc.x.getCoefficients().transpose() << std::endl;
+    for (int i = 0; i < n_samples; i++) {
+      hmc.apply(rng, 5);
+      if (i > n_samples / 2) {
+        sum = sum + hmc.x;
+        std::cout << hmc.x.getCoefficients().transpose() << std::endl;
+      }
     }
 
+    sum = (1.0 / n_samples) * sum;
+
+    CHECK(sum.dot(sum) < 1e-5);
+
 }
-//
-// template <typename NT>
-// void test_underdamped_langevin(){
-//     typedef Cartesian<NT>    Kernel;
-//     typedef typename Kernel::Point    Point;
-//     typedef std::vector<Point> pts;
-//     typedef std::function<Point(pts, NT)> func;
-//
-//     typedef HPolytope<Point> Hpolytope;
-//     typedef BoostRandomNumberGenerator<boost::mt19937, NT> RandomNumberGenerator;
-//
-//     RandomNumberGenerator rng(1);
-//
-//
-//     UnderdampedLangevinWalk::parameters<NT> params;
-//
-//     func neg_grad_f = [](pts x, NT t) {
-//       Point p = all_ones<Point>(x[0].dimension());
-//       Point z = (-2.0) * x[0];
-//       z = z - p;
-//       return z;
-//      };
-//     std::function<NT(Point)> f = [](Point x) {
-//       return x.dot(x) + x.sum();
-//     };
-//     unsigned int dim = 1;
-//     Hpolytope P = gen_cube<Hpolytope>(dim, false);
-//     Point x0 = GetDirection<Point>::apply(dim, rng, false);
-//     Point v0 = GetDirection<Point>::apply(dim, rng, false);
-//     Point z = all_ones<Point>(dim);
-//     z = (-0.5) * z;
-//     x0 = x0 - z;
-//
-//     UnderdampedLangevinWalk::Walk<Point, Hpolytope, RandomNumberGenerator>
-//       uld(&P, x0, v0, neg_grad_f, f, params);
-//
-//     for (int i = 0; i < 1000; i++) {
-//       uld.apply(rng, 1, true);
-//       std::cout << uld.x.getCoefficients().transpose() << std::endl;
-//     }
-//
-// }
 
 template <typename NT>
 void call_test_hmc() {
   test_hmc<NT>();
 }
 
-// template <typename NT>
-// void call_test_langevin() {
-//   test_underdamped_langevin<NT>();
-// }
-
 TEST_CASE("hmc") {
   call_test_hmc<double>();
 }
-
-// TEST_CASE("langevin") {
-//   call_test_langevin<double>();
-// }

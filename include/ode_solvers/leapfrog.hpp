@@ -11,7 +11,12 @@
 #ifndef LEAPFROG_HPP
 #define LEAPFROG_HPP
 
-template <typename Point, typename NT, typename Polytope, typename func>
+template <
+		typename Point,
+		typename NT,
+		typename Polytope,
+		typename func
+>
 struct LeapfrogODESolver {
 
   typedef std::vector<Point> pts;
@@ -40,8 +45,8 @@ struct LeapfrogODESolver {
 
   void step() {
     xs_prev = xs;
+    unsigned int x_index, v_index, it;
     t += eta;
-    unsigned int x_index, v_index;
     for (unsigned int i = 1; i < xs.size(); i += 2) {
 
       x_index = i - 1;
@@ -70,7 +75,7 @@ struct LeapfrogODESolver {
           std::pair<NT, int> pbpair = Ks[x_index]->line_positive_intersect(xs[x_index], y, Ar, Av);
 
           if (pbpair.first >= 0 && pbpair.first <= 1) {
-            xs[x_index] += (pbpair.first * 0.99) * y;
+            xs[x_index] += (pbpair.first * 0.95) * y;
             Ks[x_index]->compute_reflection(y, xs[x_index], pbpair.second);
             xs[x_index] += y;
 

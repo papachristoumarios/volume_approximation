@@ -82,10 +82,8 @@ struct UnderdampedLangevinWalk {
 
     typedef std::vector<Point> pts;
     typedef typename Point::FT NT;
-    typedef LangevinStochasticFunctor<NT, Point, RandomNumberGenerator, neg_gradient_func> sfunc;
-    typedef std::vector<sfunc> sfuncs;
     typedef std::vector<Polytope*> bounds;
-    typedef LeapfrogODESolver<Point, NT, Polytope, sfunc> Solver;
+    typedef RandomizedMipointSDESolver<Point, NT, Polytope, neg_gradient_func, RandomNumberGenerator> Solver;
 
     parameters<NT> params;
 
@@ -133,16 +131,10 @@ struct UnderdampedLangevinWalk {
 
       params.u = 1.0 / params.L;
 
-      // Stochastic function multipliers
-      std::vector<NT> a{NT(0), NT(-2)};
-      std::vector<NT> b{NT(1), NT(params.u)};
-      std::vector<NT> c{NT(0), NT(2 * sqrt(params.u))};
-
-      sfunc F(neg_grad_f, a, b, c);
+      F = neg_grad_f;
 
       // Define exp(-f(x)) where f(x) is convex
       f = density_exponent;
-
 
       // Starting point is provided from outside
       x = initial_x;
@@ -150,7 +142,7 @@ struct UnderdampedLangevinWalk {
 
       dim = initial_x.dimension();
 
-      solver = new Solver(0, params.eta, pts{initial_x, initial_v}, F, bounds{P, NULL});
+      solver = new Solver(0, params.eta, pts{initial_x, initial_v}, F, bounds{P, NULL}, params.u);
 
     };
 
