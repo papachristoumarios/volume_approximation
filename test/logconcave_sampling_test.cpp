@@ -40,7 +40,7 @@ void test_hmc(){
     typedef BoostRandomNumberGenerator<boost::mt19937, NT> RandomNumberGenerator;
     typedef IsotropicQuadraticFunctor::GradientFunctor<Point> neg_gradient_func;
     typedef IsotropicQuadraticFunctor::FunctionFunctor<Point> neg_logprob_func;
-    typedef IntegralCollocationODESolver<Point, NT, Hpolytope, neg_gradient_func> Solver;
+    typedef LeapfrogODESolver<Point, NT, Hpolytope, neg_gradient_func> Solver;
 
     IsotropicQuadraticFunctor::parameters<NT> params;
     params.order = 2;
@@ -50,23 +50,20 @@ void test_hmc(){
     neg_logprob_func f(params);
 
     RandomNumberGenerator rng(1);
-
-
-    UnderdampedLangevinWalk::parameters<NT> hmc_params;
+    HamiltonianMonteCarloWalk::parameters<NT> hmc_params;
     unsigned int dim = 1;
     Hpolytope P = gen_cube<Hpolytope>(dim, false);
     Point x0(dim);
-    Point v0(dim);
 
-    UnderdampedLangevinWalk::Walk
-      <Point, Hpolytope, RandomNumberGenerator, neg_gradient_func, neg_logprob_func>
-      hmc(NULL, x0, v0, F, f, hmc_params);
+    HamiltonianMonteCarloWalk::Walk
+      <Point, Hpolytope, RandomNumberGenerator, neg_gradient_func, neg_logprob_func, Solver>
+      hmc(&P, x0, F, f, hmc_params);
 
     Point sum(dim);
-    int n_samples = 15000;
+    int n_samples = 150000;
 
     for (int i = 0; i < n_samples; i++) {
-      hmc.apply(rng, 5);
+      hmc.apply(rng, 1);
       if (i > n_samples / 2) {
         sum = sum + hmc.x;
         std::cout << hmc.x.getCoefficients().transpose() << std::endl;
@@ -75,7 +72,53 @@ void test_hmc(){
 
     sum = (1.0 / n_samples) * sum;
 
-    CHECK(sum.dot(sum) < 1e-5);
+    // CHECK(sum.dot(sum) < 1e-5);
+
+}
+
+
+template <typename NT>
+void test_uld(){
+    typedef Cartesian<NT>    Kernel;
+    typedef typename Kernel::Point    Point;
+    typedef std::vector<Point> pts;
+    typedef HPolytope<Point> Hpolytope;
+    typedef BoostRandomNumberGenerator<boost::mt19937, NT> RandomNumberGenerator;
+    typedef IsotropicQuadraticFunctor::GradientFunctor<Point> neg_gradient_func;
+    typedef IsotropicQuadraticFunctor::FunctionFunctor<Point> neg_logprob_func;
+    typedef LeapfrogODESolver<Point, NT, Hpolytope, neg_gradient_func> Solver;
+
+    IsotropicQuadraticFunctor::parameters<NT> params;
+    params.order = 2;
+    params.alpha = NT(1);
+
+    neg_gradient_func F(params);
+    neg_logprob_func f(params);
+
+    RandomNumberGenerator rng(1);
+    UnderdampedLangevinWalk::parameters<NT> hmc_params;
+    unsigned int dim = 1;
+    Hpolytope P = gen_cube<Hpolytope>(dim, false);
+    Point x0(dim);
+
+    UnderdampedLangevinWalk::Walk
+      <Point, Hpolytope, RandomNumberGenerator, neg_gradient_func, neg_logprob_func>
+      hmc(&P, x0, F, f, hmc_params);
+
+    Point sum(dim);
+    int n_samples = 150000;
+
+    for (int i = 0; i < n_samples; i++) {
+      hmc.apply(rng, 1);
+      if (i > n_samples / 2) {
+        sum = sum + hmc.x;
+        std::cout << hmc.x.getCoefficients().transpose() << std::endl;
+      }
+    }
+
+    sum = (1.0 / n_samples) * sum;
+
+    // CHECK(sum.dot(sum) < 1e-5);
 
 }
 
@@ -84,6 +127,15 @@ void call_test_hmc() {
   test_hmc<NT>();
 }
 
+template <typename NT>
+void call_test_uld() {
+  test_uld<NT>();
+}
+
 TEST_CASE("hmc") {
   call_test_hmc<double>();
+}
+
+TEST_CASE("uld") {
+  call_test_uld<double>();
 }

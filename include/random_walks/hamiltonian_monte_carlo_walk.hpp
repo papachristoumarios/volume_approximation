@@ -89,8 +89,11 @@ struct HamiltonianMonteCarloWalk {
       // ODE related-stuff
       params = param;
       params.kappa = params.L / params.m;
+      if (params.epsilon > params.kappa / std::exp(1.0)) {
+        params.epsilon = params.kappa / std::exp(1.0);
+      }
       params.eta = 1.0 /
-        sqrt(20 * params.L * pow(dim, 3));
+        (sqrt(20 * params.L * pow(dim, 3)));
 
       // Set order to 2
       F = neg_grad_f;

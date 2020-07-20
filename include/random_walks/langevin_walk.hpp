@@ -107,17 +107,15 @@ struct UnderdampedLangevinWalk {
 
     Walk(Polytope *P,
       Point &initial_x,
-      Point &initial_v,
       neg_gradient_func neg_grad_f,
       neg_logprob_func density_exponent,
       parameters<NT> &param)
     {
-      initialize(P, initial_x, initial_v, neg_grad_f, density_exponent, param);
+      initialize(P, initial_x, neg_grad_f, density_exponent, param);
     }
 
     void initialize(Polytope *P,
       Point &initial_x,
-      Point &initial_v,
       neg_gradient_func neg_grad_f,
       neg_logprob_func density_exponent,
       parameters<NT> &param)
@@ -126,10 +124,13 @@ struct UnderdampedLangevinWalk {
       // ODE related-stuff
       params = param;
       params.kappa = params.L / params.m;
-      params.eta = 1.0 /
-        sqrt(20 * params.L);
-
       params.u = 1.0 / params.L;
+
+      params.eta = std::min(pow(params.epsilon, 1.0 / 3) /
+                            pow(params.kappa, 1.0 / 6) *
+                            pow(log(1.0 / params.epsilon), - 1.0 / 6),
+                            pow(params.epsilon, 2.0 / 3) *
+                            pow(log(1.0 / params.epsilon), - 1.0 / 3));
 
       F = neg_grad_f;
 
@@ -138,11 +139,10 @@ struct UnderdampedLangevinWalk {
 
       // Starting point is provided from outside
       x = initial_x;
-      v = initial_v;
-
       dim = initial_x.dimension();
+      v = Point(dim);
 
-      solver = new Solver(0, params.eta, pts{initial_x, initial_v}, F, bounds{P, NULL}, params.u);
+      solver = new Solver(0, params.eta, pts{x, v}, F, bounds{P, NULL}, params.u);
 
     };
 
@@ -155,7 +155,7 @@ struct UnderdampedLangevinWalk {
       solver->set_state(1, v);
 
       // Get proposals
-      solver->steps(walk_length);
+      solver->steps(walk_length, rng);
       x_tilde = solver->get_state(0);
       v_tilde = solver->get_state(1);
 

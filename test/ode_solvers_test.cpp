@@ -95,7 +95,7 @@ void test_euler(){
 }
 
 template <typename NT>
-void test_bs(){
+void test_richardson(){
     typedef Cartesian<NT>    Kernel;
     typedef typename Kernel::Point    Point;
     typedef std::vector<Point> pts;
@@ -144,28 +144,27 @@ void test_leapfrog_constrained(){
     typedef HPolytope<Point>  Hpolytope;
     typedef std::vector<Hpolytope*> bounds;
     typedef IsotropicQuadraticFunctor::GradientFunctor<Point> func;
+    unsigned int dim = 4;
 
     IsotropicQuadraticFunctor::parameters<NT> params;
     params.order = 2;
-    params.alpha = NT(2);
+    params.alpha = NT(1);
 
 		func F(params);
 
     // Solve in P x R for
-    Hpolytope P = gen_cube<Hpolytope>(1, true);
+    Hpolytope P = gen_cube<Hpolytope>(dim, false);
     bounds Ks{&P, NULL};
 
-    Point x0 = Point(1);
-    Point v0 = Point(1);
-    x0.set_coord(0, 0);
-    v0.set_coord(0, 2.0);
+    Point x0 = Point(dim);
+    Point v0 = Point::all_ones(dim);
     pts q{x0, v0};
     LeapfrogODESolver<Point, NT, Hpolytope, func> leapfrog_solver =
       LeapfrogODESolver<Point, NT, Hpolytope, func>(0, 0.1, q, F, Ks);
 
     for (int i = 0; i < 1000; i++) {
       leapfrog_solver.step();
-      CHECK(leapfrog_solver.xs[0].dot(leapfrog_solver.xs[0]) < 1.1);
+      CHECK(leapfrog_solver.xs[0].dot(leapfrog_solver.xs[0]) < 1.1 * dim);
     }
 
 }
@@ -208,29 +207,30 @@ void test_euler_constrained(){
     typedef HPolytope<Point>  Hpolytope;
     typedef std::vector<Hpolytope*> bounds;
     typedef IsotropicQuadraticFunctor::GradientFunctor<Point> func;
-
-
     IsotropicQuadraticFunctor::parameters<NT> params;
-    params.alpha = NT(-1);
-    func F(params);
+    params.order = 2;
 
-    bounds Ks;
+    typedef IsotropicQuadraticFunctor::GradientFunctor<Point> func;
+		func F(params);
 
-    Hpolytope P = gen_cube<Hpolytope>(1, false);
-    Ks.push_back(&P);
+    unsigned int dim = 1;
 
-    Point q0 = Point(1);
-    q0.set_coord(0, 0.5);
-    pts q;
-    q.push_back(q0);
+    Hpolytope P = gen_cube<Hpolytope>(dim, false);
+    Point x0(dim);
+    Point v0 = Point::all_ones(dim);
+
     EulerODESolver<Point, NT, Hpolytope, func> euler_solver =
-      EulerODESolver<Point, NT, Hpolytope, func>(0, 0.001, q, F, Ks);
+      EulerODESolver<Point, NT, Hpolytope, func>(0, 0.01, pts{x0, v0}, F, bounds{&P, NULL});
 
-    check_norm(euler_solver, 1000, NT(1));
+    for (int i = 0; i < 1000; i++) {
+      euler_solver.step();
+      // CHECK(euler_solver.xs[0].dot(euler_solver.xs[0]) < 1.1 * dim);
+    }
+
 }
 
 template <typename NT>
-void test_bs_constrained(){
+void test_richardson_constrained(){
     typedef Cartesian<NT>    Kernel;
     typedef typename Kernel::Point    Point;
     typedef std::vector<Point> pts;
@@ -238,23 +238,23 @@ void test_bs_constrained(){
     typedef std::vector<Hpolytope*> bounds;
     typedef IsotropicQuadraticFunctor::GradientFunctor<Point> func;
     IsotropicQuadraticFunctor::parameters<NT> params;
-    params.alpha = NT(-1);
+    unsigned int dim = 4;
+    params.order = 2;
     func F(params);
 
-    bounds Ks;
+    Hpolytope P = gen_cube<Hpolytope>(dim, false);
 
+    Point x0(dim);
+    Point v0 = Point::all_ones(dim);
 
-    Hpolytope P = gen_cube<Hpolytope>(1, true);
-    Ks.push_back(&P);
+    RichardsonExtrapolationODESolver<Point, NT, Hpolytope, func> r_solver =
+      RichardsonExtrapolationODESolver<Point, NT, Hpolytope, func>
+        (0, 0.01, pts{x0, v0}, F, bounds{&P, NULL});
 
-    Point q0 = Point(1);
-    q0.set_coord(0, 0.5);
-    pts q;
-    q.push_back(q0);
-    RichardsonExtrapolationODESolver<Point, NT, Hpolytope, func> r_solver = RichardsonExtrapolationODESolver<Point, NT, Hpolytope, func>(0, 0.01, q, F, Ks);
-
-    check_norm(r_solver, 1000, NT(1));
-
+    for (int i = 0; i < 1000; i++) {
+      r_solver.step();
+      CHECK(r_solver.xs[0].dot(r_solver.xs[0]) < 1.1 * dim);
+    }
 }
 
 template <typename NT>
@@ -279,12 +279,7 @@ void test_rk4_constrained(){
     bounds Ks{&P};
     RKODESolver<Point, NT, Hpolytope, func> rk_solver = RKODESolver<Point, NT, Hpolytope, func>(0, 0.01, q, F, Ks);
 
-    rk_solver.steps(1000);
-
-    NT err=0.01;
-    NT target = 1.0;
-    NT error = std::abs((rk_solver.xs[0][0] - target) / target);
-    CHECK(error < err);
+    check_norm(rk_solver, 1000, NT(1));
 }
 
 template <typename NT>
@@ -318,12 +313,11 @@ void call_test_first_order() {
   std::cout << "--- Testing solution to dx / dt = -x" << std::endl;
   test_euler<NT>();
   test_rk4<NT>();
-  test_bs<NT>();
+  test_richardson<NT>();
 
   std::cout << "--- Testing solution to dx / dt = x in [-1, 1]" << std::endl;
-  test_euler_constrained<NT>();
   test_rk4_constrained<NT>();
-  test_bs_constrained<NT>();
+  // test_richardson_constrained<NT>();
 
 }
 
@@ -333,7 +327,7 @@ void call_test_second_order() {
   test_leapfrog<NT>();
 
   std::cout << "--- Testing solution to dx / dt = v, dv / dt = -x w/ Euler" << std::endl;
-  // test_euler_2d<NT>();
+  test_euler_constrained<NT>();
 
   std::cout << "--- Testing solution to d^2x / dt^2 = x in [-1, 1]" << std::endl;
   test_leapfrog_constrained<NT>();
