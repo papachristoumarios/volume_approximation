@@ -38,6 +38,8 @@ struct LeapfrogODESolver {
   pts xs;
   pts xs_prev;
 
+	std::pair<NT, int> pbpair;
+
   LeapfrogODESolver(NT initial_time, NT step, pts initial_state, func oracle, bounds boundaries) :
     t(initial_time), xs(initial_state), F(oracle), eta(step), Ks(boundaries) {
       dim = xs[0].dimension();
@@ -67,24 +69,25 @@ struct LeapfrogODESolver {
       xs[v_index] = xs[v_index] + z;
 
       if (Ks[x_index] == NULL) {
-        xs[x_index] = xs[x_index] + y;
+        xs[x_index] = xs_prev[x_index] + y;
       }
       else {
         // Find intersection (assuming a line trajectory) between x and y
-        do {
-          std::pair<NT, int> pbpair = Ks[x_index]->line_positive_intersect(xs[x_index], y, Ar, Av);
+				do {
+
+					pbpair = Ks[x_index]->line_positive_intersect(xs_prev[x_index], y, Ar, Av);
 
           if (pbpair.first >= 0 && pbpair.first <= 1) {
-            xs[x_index] += (pbpair.first * 0.95) * y;
-            Ks[x_index]->compute_reflection(y, xs[x_index], pbpair.second);
-            xs[x_index] += y;
+            xs_prev[x_index] += (pbpair.first * 0.95) * y;
+            Ks[x_index]->compute_reflection(y, xs_prev[x_index], pbpair.second);
+						xs[x_index] = xs_prev[x_index] + y;
 
             // Reflect velocity
             Ks[x_index]->compute_reflection(xs[v_index], xs[x_index], pbpair.second);
           }
           else {
-            xs[x_index] += y;
-          }
+            xs[x_index] = xs_prev[x_index] + y;
+					}
         } while (!Ks[x_index]->is_in(xs[x_index]));
       }
 

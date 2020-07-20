@@ -107,7 +107,8 @@ struct RKODESolver {
 
         if (Ks[i] == NULL) {
           xs[i] = xs[i] + y;
-          if (prev_facet != -1) Ks[i]->compute_reflection(xs[i], x_prev_bound, prev_facet);
+          if (prev_facet != -1 && i > 0)
+						Ks[i-1]->compute_reflection(xs[i], x_prev_bound, prev_facet);
           prev_facet = -1;
         }
         else {

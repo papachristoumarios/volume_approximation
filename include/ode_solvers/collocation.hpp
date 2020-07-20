@@ -235,7 +235,7 @@ struct CollocationODESolver {
         //   xs[i] += as[i][ord] * phi(t_prev + eta, t_prev, ord, order());
         // }
 
-        if (prev_facet != -1) Ks[i]->compute_reflection(xs[i], prev_point, prev_facet);
+        if (prev_facet != -1 && i > 0) Ks[i-1]->compute_reflection(xs[i], prev_point, prev_facet);
         prev_facet = -1;
 
 
