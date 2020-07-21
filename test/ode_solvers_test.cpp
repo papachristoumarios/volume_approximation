@@ -277,7 +277,8 @@ void test_rk4_constrained(){
     Hpolytope P = gen_cube<Hpolytope>(1, false);
 
     bounds Ks{&P};
-    RKODESolver<Point, NT, Hpolytope, func> rk_solver = RKODESolver<Point, NT, Hpolytope, func>(0, 0.01, q, F, Ks);
+    RKODESolver<Point, NT, Hpolytope, func> rk_solver =
+      RKODESolver<Point, NT, Hpolytope, func>(0, 0.01, q, F, Ks);
 
     check_norm(rk_solver, 1000, NT(1));
 }
@@ -355,11 +356,8 @@ void test_collocation(){
     typedef std::vector<Hpolytope*> bounds;
     typedef IsotropicQuadraticFunctor::GradientFunctor<Point> func;
 		func F;
-
-    Point q0 = Point(1);
-    q0.set_coord(0, 1.0);
-    pts q;
-    q.push_back(q0);
+    unsigned int dim = 5;
+    Point x0  = Point::all_ones(dim);
 
     bfunc phi(FUNCTION);
     bfunc grad_phi(DERIVATIVE);
@@ -368,11 +366,9 @@ void test_collocation(){
     coeffs cs{0.0, 0.0, 1.0};
     CollocationODESolver<Point, NT, Hpolytope, bfunc, func> c_solver =
       CollocationODESolver<Point, NT, Hpolytope, bfunc, func>
-      (0, 1.0, q, F, bounds{NULL}, cs, phi, grad_phi);
-    c_solver.steps(100);
-    NT err=0.001;
-    NT error = c_solver.xs[0].dot(c_solver.xs[0]);
-    CHECK(error < err);
+      (0, 1.0, pts{x0}, F, bounds{NULL}, cs, phi, grad_phi);
+
+    check_norm(c_solver, 1000, NT(0));
 }
 
 template <typename NT>
@@ -387,16 +383,15 @@ void test_integral_collocation(){
     typedef std::vector<Hpolytope*> bounds;
     typedef IsotropicQuadraticFunctor::GradientFunctor<Point> func;
 
-
     func F;
     unsigned int dim = 3;
 
     Point x0 = Point::all_ones(dim);
     IntegralCollocationODESolver<Point, NT, Hpolytope, func> c_solver =
-      IntegralCollocationODESolver<Point, NT, Hpolytope, func>(0, 0.01, pts{x0}, F, bounds{NULL}, 8);
+      IntegralCollocationODESolver<Point, NT, Hpolytope, func>
+      (0, 0.01, pts{x0}, F, bounds{NULL}, 8);
 
     check_norm(c_solver, 1000, NT(0));
-
 }
 
 template <typename NT>
