@@ -72,6 +72,30 @@ void check_norm(Solver &solver, int num_steps, NT target, NT tol=1e-4) {
 
 }
 
+template <typename NT, typename Solver>
+void check_index_norm_ub(Solver &solver, int num_steps, int index, NT target, NT tol=1e-4) {
+  std::cout << "Dimensionality: " << solver.dim << std::endl;
+  std::cout << "Target UB Norm for index " << index << ": " << target << std::endl;
+
+  NT norm;
+  auto start = std::chrono::high_resolution_clock::now();
+
+  for (int i = 0; i < num_steps; i++) {
+    solver.step();
+    #ifdef VOLESTI_DEBUG
+      solver.print_state();
+    #endif
+
+    norm = sqrt(solver.xs[index].dot(solver.xs[index]));
+    CHECK(norm < target);
+  }
+  auto stop = std::chrono::high_resolution_clock::now();
+
+  long ETA = (long) std::chrono::duration_cast<std::chrono::microseconds>(stop - start).count();
+  std::cout << "ETA (us): " << ETA << std::endl << std::endl;
+}
+
+
 template <typename NT>
 void test_euler(){
     typedef Cartesian<NT>    Kernel;
@@ -162,11 +186,7 @@ void test_leapfrog_constrained(){
     LeapfrogODESolver<Point, NT, Hpolytope, func> leapfrog_solver =
       LeapfrogODESolver<Point, NT, Hpolytope, func>(0, 0.1, q, F, Ks);
 
-    for (int i = 0; i < 1000; i++) {
-      leapfrog_solver.step();
-      CHECK(leapfrog_solver.xs[0].dot(leapfrog_solver.xs[0]) < 1.1 * dim);
-    }
-
+    check_index_norm_ub(leapfrog_solver, 1000, 0, 1.1 * sqrt(dim));
 }
 
 
@@ -177,26 +197,20 @@ void test_leapfrog(){
     typedef std::vector<Point> pts;
     typedef HPolytope<Point>  Hpolytope;
     typedef std::vector<Hpolytope*> bounds;
-
     IsotropicQuadraticFunctor::parameters<NT> params;
     params.order = 2;
+    unsigned int dim = 3;
 
     typedef IsotropicQuadraticFunctor::GradientFunctor<Point> func;
 		func F(params);
 
-    Point x0 = Point(1);
-    Point v0 = Point(1);
-    x0.set_coord(0, 0);
-    v0.set_coord(0, 1.0);
-    pts q{x0, v0};
+    Point x0(dim);
+    Point v0 = Point::all_ones(dim);
+
     LeapfrogODESolver<Point, NT, Hpolytope, func> leapfrog_solver =
-      LeapfrogODESolver<Point, NT, Hpolytope, func>(0, 0.01, q, F, bounds{NULL, NULL});
+      LeapfrogODESolver<Point, NT, Hpolytope, func>(0, 0.01, pts{x0, v0}, F, bounds{NULL, NULL});
 
-    for (int i = 0; i < 1000; i++) {
-      leapfrog_solver.step();
-      CHECK(leapfrog_solver.xs[0].dot(leapfrog_solver.xs[0]) < 1.1);
-    }
-
+    check_index_norm_ub(leapfrog_solver, 1000, 0, 1.1 * sqrt(dim));
 }
 
 template <typename NT>
@@ -251,10 +265,7 @@ void test_richardson_constrained(){
       RichardsonExtrapolationODESolver<Point, NT, Hpolytope, func>
         (0, 0.01, pts{x0, v0}, F, bounds{&P, NULL});
 
-    for (int i = 0; i < 1000; i++) {
-      r_solver.step();
-      CHECK(r_solver.xs[0].dot(r_solver.xs[0]) < 1.1 * dim);
-    }
+    check_index_norm_ub(r_solver, 1000, 0, 1.1 * sqrt(dim));
 }
 
 template <typename NT>
@@ -284,31 +295,6 @@ void test_rk4_constrained(){
 }
 
 template <typename NT>
-void test_euler_2d(){
-    typedef Cartesian<NT>    Kernel;
-    typedef typename Kernel::Point    Point;
-    typedef std::vector<Point> pts;
-    typedef HPolytope<Point>  Hpolytope;
-    typedef std::vector<Hpolytope*> bounds;
-    typedef IsotropicQuadraticFunctor::GradientFunctor<Point> func;
-
-    bounds Ks;
-    IsotropicQuadraticFunctor::parameters<NT> params;
-    params.order = 2;
-    func F(params);
-    Point q0 = Point(2);
-    q0.set_coord(0, 0.2);
-    q0.set_coord(1, 0.2);
-    pts q;
-    q.push_back(q0);
-    EulerODESolver<Point, NT, Hpolytope, func> euler_solver =
-      EulerODESolver<Point, NT, Hpolytope, func>(0, 0.1, q, F, bounds{NULL});
-    euler_solver.steps(1000);
-    CHECK(euler_solver.xs[0].dot(euler_solver.xs[0]) < 1.1);
-
-}
-
-template <typename NT>
 void call_test_first_order() {
 
   std::cout << "--- Testing solution to dx / dt = -x" << std::endl;
@@ -325,13 +311,8 @@ template <typename NT>
 void call_test_second_order() {
   std::cout << "--- Testing solution to d^2x / dt^2 = -x" << std::endl;
   test_leapfrog<NT>();
-
-  std::cout << "--- Testing solution to dx / dt = v, dv / dt = -x w/ Euler" << std::endl;
   test_euler_constrained<NT>();
-
-  std::cout << "--- Testing solution to d^2x / dt^2 = x in [-1, 1]" << std::endl;
   test_leapfrog_constrained<NT>();
-
 }
 
 TEST_CASE("first_order") {
@@ -405,32 +386,29 @@ void test_collocation_constrained(){
     typedef std::vector<Hpolytope*> bounds;
     typedef IsotropicQuadraticFunctor::GradientFunctor<Point> func;
     IsotropicQuadraticFunctor::parameters<NT> params;
-    params.alpha = NT(-1);
+    unsigned int dim = 4;
+    params.order = 2;
     func F(params);
 
-    bounds Ks;
-
-    Hpolytope P = gen_cube<Hpolytope>(1, false);
-    Ks.push_back(&P);
+    Hpolytope P = gen_cube<Hpolytope>(dim, false);
 
     bfunc phi(FUNCTION);
     bfunc grad_phi(DERIVATIVE);
 
+    Point x0(dim);
+    Point v0 = Point::all_ones(dim);
+
     // Trapezoidal collocation
     coeffs cs{0.0, 0.0, 1.0};
 
-    Point q0 = Point(1);
-    q0.set_coord(0, 0.5);
-    pts q;
-    q.push_back(q0);
     CollocationODESolver<Point, NT, Hpolytope, bfunc, func> c_solver =
       CollocationODESolver<Point, NT, Hpolytope, bfunc, func>
-      (0, 0.05, q, F, Ks, cs, phi, grad_phi);
-    c_solver.steps(1000);
-    NT err=0.1;
-    NT target = 1.0;
-    NT error = std::abs((c_solver.xs[0].dot(c_solver.xs[0]) - target) / target);
-    CHECK(error < err);
+      (0, 0.05, pts{x0, v0}, F, bounds{&P, NULL}, cs, phi, grad_phi);
+
+    // NT err=0.1;
+    // NT target = 1.0;
+    // NT error = std::abs((c_solver.xs[0].dot(c_solver.xs[0]) - target) / target);
+    // CHECK(error < err);
 }
 
 template <typename NT>
@@ -440,8 +418,8 @@ void call_test_collocation() {
   test_collocation<NT>();
   test_integral_collocation<NT>();
 
-  // std::cout << "--- Testing solution to dx / dt = x in [-1, 1] w/ collocation" << std::endl;
-  // test_collocation_constrained<NT>();
+  std::cout << "--- Testing solution to dx / dt = x in [-1, 1] w/ collocation" << std::endl;
+  test_collocation_constrained<NT>();
 
 }
 
