@@ -317,7 +317,6 @@ void call_test_first_order() {
 
   std::cout << "--- Testing solution to dx / dt = x in [-1, 1]" << std::endl;
   test_rk4_constrained<NT>();
-  // test_richardson_constrained<NT>();
 
 }
 
@@ -350,9 +349,8 @@ void test_collocation(){
     typedef typename Kernel::Point    Point;
     typedef std::vector<Point> pts;
 
-    typedef std::function<NT(NT, NT, unsigned int, unsigned int)> bfunc;
+    typedef PolynomialBasis<NT> bfunc;
     typedef std::vector<NT> coeffs;
-
     typedef HPolytope<Point>  Hpolytope;
     typedef std::vector<Hpolytope*> bounds;
     typedef IsotropicQuadraticFunctor::GradientFunctor<Point> func;
@@ -363,13 +361,8 @@ void test_collocation(){
     pts q;
     q.push_back(q0);
 
-    bfunc phi = [](NT t, NT t0, unsigned int j, unsigned int order) {
-      return pow(t - t0, (NT) j);
-    };
-
-    bfunc grad_phi = [](NT t, NT t0, unsigned int j, unsigned int order) {
-      return ((NT) j) * pow(t - t0, (NT) (j - 1));
-    };
+    bfunc phi(FUNCTION);
+    bfunc grad_phi(DERIVATIVE);
 
     // Trapezoidal collocation
     coeffs cs{0.0, 0.0, 1.0};
@@ -411,7 +404,7 @@ void test_collocation_constrained(){
     typedef Cartesian<NT>    Kernel;
     typedef typename Kernel::Point    Point;
     typedef std::vector<Point> pts;
-    typedef std::function<NT(NT, NT, unsigned int, unsigned int)> bfunc;
+    typedef PolynomialBasis<NT> bfunc;
     typedef std::vector<NT> coeffs;
     typedef HPolytope<Point>  Hpolytope;
     typedef std::vector<Hpolytope*> bounds;
@@ -425,13 +418,8 @@ void test_collocation_constrained(){
     Hpolytope P = gen_cube<Hpolytope>(1, false);
     Ks.push_back(&P);
 
-    bfunc phi = [](NT t, NT t0, unsigned int j, unsigned int order) {
-      return pow(t - t0, (NT) j);
-    };
-
-    bfunc grad_phi = [](NT t, NT t0, unsigned int j, unsigned int order) {
-      return ((NT) j) * pow(t - t0, (NT) (j - 1));
-    };
+    bfunc phi(FUNCTION);
+    bfunc grad_phi(DERIVATIVE);
 
     // Trapezoidal collocation
     coeffs cs{0.0, 0.0, 1.0};
