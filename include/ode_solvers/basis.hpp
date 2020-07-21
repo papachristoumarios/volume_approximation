@@ -24,7 +24,7 @@ struct PolynomialBasis {
 
   PolynomialBasis(BasisType basis_type_) : basis_type(basis_type_) {}
 
-  NT operator() (NT t, NT t0, unsigned int j, unsigned int ord) {
+  NT operator() (NT t, const NT t0, unsigned int j, const unsigned int ord) const {
     switch (basis_type) {
       case FUNCTION:
         return pow(t - t0, NT(j));
