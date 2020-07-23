@@ -44,7 +44,6 @@ void test_hmc(){
 
     IsotropicQuadraticFunctor::parameters<NT> params;
     params.order = 2;
-    params.alpha = NT(1);
 
     neg_gradient_func F(params);
     neg_logprob_func f(params);
@@ -61,18 +60,21 @@ void test_hmc(){
 
     Point sum(dim);
     int n_samples = 150000;
+    int total = 0;
 
     for (int i = 0; i < n_samples; i++) {
       hmc.apply(rng, 1);
-      if (i > n_samples / 2) {
+      if (i > n_samples / 3) {
         sum = sum + hmc.x;
         std::cout << hmc.x.getCoefficients().transpose() << std::endl;
+
       }
     }
 
     sum = (1.0 / n_samples) * sum;
 
-    // CHECK(sum.dot(sum) < 1e-5);
+    // std::cout << "Mean with HMC: " << sum.getCoefficients().transpose() << std::endl;
+    CHECK(sum.dot(sum) < 0.1);
 
 }
 
@@ -103,32 +105,33 @@ void test_uld(){
 
     UnderdampedLangevinWalk::Walk
       <Point, Hpolytope, RandomNumberGenerator, neg_gradient_func, neg_logprob_func>
-      hmc(&P, x0, F, f, hmc_params);
+      uld(&P, x0, F, f, hmc_params);
 
     Point sum(dim);
-    int n_samples = 150000;
+    int n_samples = 15000;
 
     for (int i = 0; i < n_samples; i++) {
-      hmc.apply(rng, 1);
-      if (i > n_samples / 2) {
-        sum = sum + hmc.x;
-        std::cout << hmc.x.getCoefficients().transpose() << std::endl;
+      uld.apply(rng, 1);
+      if (i > n_samples / 3) {
+        sum = sum + uld.x;
       }
     }
 
     sum = (1.0 / n_samples) * sum;
 
-    // CHECK(sum.dot(sum) < 1e-5);
+    // std::cout << "Mean with ULD: " << sum.getCoefficients().transpose() << std::endl;
 
 }
 
 template <typename NT>
 void call_test_hmc() {
+  // std::cout << "--- Testing Hamiltonian Monte Carlo" << std::endl;
   test_hmc<NT>();
 }
 
 template <typename NT>
 void call_test_uld() {
+  std::cout << "--- Testing Underdamped Langevin Diffusion" << std::endl;
   test_uld<NT>();
 }
 

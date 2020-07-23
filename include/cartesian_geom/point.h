@@ -100,7 +100,7 @@ public:
         return coeffs.data();
     }
 
-    FT sum() {
+    FT sum() const {
         return coeffs.sum();
     }
 

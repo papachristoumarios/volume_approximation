@@ -63,10 +63,12 @@ struct LeapfrogODESolver {
       Point y = xs[v_index];
       y = (eta) * y;
 
-      // tilde v <- v + eta / 2 F(x)
+			xs[x_index] = xs[x_index] + y;
+      // tilde v <- v + eta / 2 F(tilde x)
       z = F(v_index, xs, t);
       z = (eta / 2) * z;
       xs[v_index] = xs[v_index] + z;
+			xs[x_index] = xs[x_index] - y;
 
       if (Ks[x_index] == NULL) {
         xs[x_index] = xs_prev[x_index] + y;
