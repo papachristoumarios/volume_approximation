@@ -186,12 +186,7 @@ void test_leapfrog_constrained(){
     LeapfrogODESolver<Point, NT, Hpolytope, func> leapfrog_solver =
       LeapfrogODESolver<Point, NT, Hpolytope, func>(0, 0.01, q, F, Ks);
 
-    for (int i = 0; i < 1000; i++) {
-      leapfrog_solver.step();
-      leapfrog_solver.print_state();
-    }
-
-    // check_index_norm_ub(leapfrog_solver, 1000, 0, 1.1 * sqrt(dim));
+    check_index_norm_ub(leapfrog_solver, 1000, 0, 1.1 * sqrt(dim));
 }
 
 

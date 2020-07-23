@@ -90,7 +90,7 @@ struct HamiltonianMonteCarloWalk {
       params = param;
       params.kappa = params.L / params.m;
       params.eta = 1.0 /
-        (sqrt(20 * params.L));
+        (sqrt(20 * params.L * pow(dim, 3)));
 
       // Set order to 2
       F = neg_grad_f;
