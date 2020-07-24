@@ -73,7 +73,7 @@ void check_norm(Solver &solver, int num_steps, NT target, NT tol=1e-4) {
 }
 
 template <typename NT, typename Solver>
-void check_index_norm_ub(Solver &solver, int num_steps, int index, NT target, NT tol=1e-4) {
+void check_index_norm_ub(Solver &solver, int num_steps, int index, NT target, NT tol=1e-2) {
   std::cout << "Dimensionality: " << solver.dim << std::endl;
   std::cout << "Target UB Norm for index " << index << ": " << target << std::endl;
 
@@ -107,14 +107,13 @@ void test_euler(){
 		func F;
 
     Point q0 = Point::all_ones(100);
-    q0 = 0.5 * q0;
 
     pts q;
     q.push_back(q0);
     EulerODESolver<Point, NT, Hpolytope, func> euler_solver =
       EulerODESolver<Point, NT, Hpolytope, func>(0, 0.01, q, F, bounds{NULL});
 
-    check_norm(euler_solver, 1000, NT(0));
+    check_norm(euler_solver, 2000, NT(0));
 
 }
 
@@ -310,7 +309,7 @@ void call_test_first_order() {
 template <typename NT>
 void call_test_second_order() {
   std::cout << "--- Testing solution to d^2x / dt^2 = -x" << std::endl;
-  // test_leapfrog<NT>();
+  test_leapfrog<NT>();
   // test_euler_constrained<NT>();
   test_leapfrog_constrained<NT>();
 }
