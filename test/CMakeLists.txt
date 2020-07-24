@@ -189,7 +189,7 @@ else ()
   add_executable (logconcave_sampling_test logconcave_sampling_test.cpp $<TARGET_OBJECTS:test_main>)
   add_test(NAME logconcave_sampling_test_hmc
           COMMAND logconcave_sampling_test -tc=hmc)
-  add_test(NAME logconcave_sampling_test_hmc
+  add_test(NAME logconcave_sampling_test_uld
           COMMAND logconcave_sampling_test -tc=uld)
 
 
