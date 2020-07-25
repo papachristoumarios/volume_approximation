@@ -39,7 +39,7 @@ void check_ergodic_mean_norm(
     int n_samples=1500,
     int skip_samples=750,
     NT target=NT(0),
-    NT tol=1e-2) {
+    NT tol=1e-1) {
 
   auto start = std::chrono::high_resolution_clock::now();
 
@@ -102,7 +102,7 @@ void test_hmc(){
       hmc(&P, x0, F, f, hmc_params);
 
     Point mean(dim);
-    check_ergodic_mean_norm(hmc, rng, mean, dim, 15000, 7500, NT(0));
+    check_ergodic_mean_norm(hmc, rng, mean, dim, 50000, 2500, NT(0));
 }
 
 
@@ -135,7 +135,7 @@ void test_uld(){
       uld(&P, x0, F, f, hmc_params);
 
     Point mean(dim);
-    check_ergodic_mean_norm(uld, rng, mean, dim, 15000, 7500, NT(0));
+    check_ergodic_mean_norm(uld, rng, mean, dim, 50000, 25000, NT(0));
 
 }
 
