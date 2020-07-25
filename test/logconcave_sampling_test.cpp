@@ -100,7 +100,7 @@ void test_hmc(){
       hmc(&P, x0, F, f, hmc_params);
 
     Point mean(dim);
-    check_ergodic_mean_norm(hmc, rng, mean, dim, 15000, NT(0));
+    check_ergodic_mean_norm(hmc, rng, mean, dim, 50000, NT(0));
 }
 
 
@@ -133,7 +133,7 @@ void test_uld(){
       uld(&P, x0, F, f, hmc_params);
 
     Point mean(dim);
-    check_ergodic_mean_norm(uld, rng, mean, dim, 15000, NT(0));
+    check_ergodic_mean_norm(uld, rng, mean, dim, 50000, NT(0));
 
 }
 
