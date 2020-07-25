@@ -60,7 +60,7 @@ void check_ergodic_mean_norm(
 
   mean = (1.0 / (n_samples - skip_samples)) * mean;
 
-  NT error = abs(NT(sqrt(mean.dot(mean))) - target);
+  NT error = abs(NT(mean.dot(mean)) - target);
 
   if (target != NT(0)) error /= abs(target);
 
