@@ -89,8 +89,8 @@ struct IsotropicLinearFunctor {
       typename NT
   >
   struct parameters {
-    NT alpha = NT(1);
-    unsigned int order = 1;
+    NT alpha;
+    unsigned int order;
 
     parameters() : alpha(NT(1)), order(1) {};
 
