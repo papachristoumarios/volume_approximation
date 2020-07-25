@@ -22,6 +22,11 @@ struct IsotropicQuadraticFunctor {
     unsigned int order;
 
     parameters() : alpha(NT(1)), order(1) {};
+
+    parameters(NT alpha_, unsigned int order_) :
+      alpha(alpha_),
+      order(order_)
+    {}
   };
 
   template
@@ -86,6 +91,13 @@ struct IsotropicLinearFunctor {
   struct parameters {
     NT alpha = NT(1);
     unsigned int order = 1;
+
+    parameters() : alpha(NT(1)), order(1) {};
+
+    parameters(NT alpha_, unsigned int order_) :
+      alpha(alpha_),
+      order(order)
+    {}
   };
 
   template

@@ -23,11 +23,31 @@ struct HamiltonianMonteCarloWalk {
     typename NT
   >
   struct parameters {
-    NT L = NT(1); // smoothness constant
-    NT m = NT(1); // strong-convexity constant
-    NT epsilon = NT(1e-4); // tolerance in mixing
-    NT eta = NT(0); // step size
-    NT kappa = NT(1); // condition number
+    NT L; // smoothness constant
+    NT m; // strong-convexity constant
+    NT epsilon; // tolerance in mixing
+    NT eta; // step size
+    NT kappa; // condition number
+
+    parameters() :
+      L(NT(1)),
+      m(NT(1)),
+      epsilon(NT(1e-4)),
+      eta(NT(0)),
+      kappa(NT(1))
+    {}
+
+    parameters(
+      NT L_,
+      NT m_,
+      NT epsilon_,
+      NT eta_) :
+      L(L_),
+      m(m_),
+      epsilon(epsilon_),
+      eta(eta_),
+      kappa(L_ / m_)
+    {}
   };
 
   template

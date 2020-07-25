@@ -14,47 +14,6 @@
 #include "generators/boost_random_number_generator.hpp"
 #include "random_walks/gaussian_helpers.hpp"
 
-// Implements the stochastic function of the Underdamped Langevin
-template
-<
-  typename NT,
-  typename Point,
-  typename RandomNumberGenerator,
-  typename func
->
-struct LangevinStochasticFunctor {
-
-  typedef std::vector<Point> pts;
-
-  std::vector<NT> a, b, c;
-  RandomNumberGenerator rng;
-  func f;
-  Point dw;
-
-  LangevinStochasticFunctor(
-    func f_,
-    std::vector<NT> a_,
-    std::vector<NT> b_,
-    std::vector<NT> c_) :
-    f(f_),
-    a(a_), // Self multipliers
-    b(b_), // Oracle multipliers
-    c(c_) // Brownian motion multipliers
-    {
-      rng = RandomNumberGenerator(1);
-    }
-
-  Point operator() (unsigned int &i, pts const& xs, NT const& t) const {
-    Point res(xs[i].dimension());
-    dw = GetDirection<Point>::apply(xs[i].dimension(), rng, false);
-    res = res + a[i] * xs[i];
-    res = res + b[i] * f(i, xs, t);
-    res = res + c[i] * dw;
-    return res;
-  }
-
-};
-
 struct UnderdampedLangevinWalk {
 
   template
@@ -62,12 +21,34 @@ struct UnderdampedLangevinWalk {
     typename NT
   >
   struct parameters {
-    NT L = NT(1); // smoothness constant
-    NT m = NT(1); // strong-convexity constant
-    NT epsilon = NT(1e-4); // tolerance in mixing
-    NT eta = NT(0); // step size
-    NT kappa = NT(1); // condition number
-    NT u = NT(1);
+    NT L; // smoothness constant
+    NT m; // strong-convexity constant
+    NT epsilon; // tolerance in mixing
+    NT eta; // step size
+    NT kappa; // condition number
+    NT u; // inverse L
+
+    parameters() :
+      L(NT(1)),
+      m(NT(1)),
+      epsilon(NT(1e-4)),
+      eta(NT(0)),
+      kappa(NT(1)),
+      u(NT(1))
+    {}
+
+    parameters(
+      NT L_,
+      NT m_,
+      NT epsilon_,
+      NT eta_) :
+      L(L_),
+      m(m_),
+      epsilon(epsilon_),
+      eta(eta_),
+      kappa(L_ / m_),
+      u(1.0 / L_)
+    {}
   };
 
   template
