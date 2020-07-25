@@ -279,7 +279,7 @@ void test_rk4_constrained(){
     params.alpha = NT(-1);
     func F(params);
 
-    Point x0 = 0.5 * Point::all_ones(1)
+    Point x0 = 0.5 * Point::all_ones(1);
 
     Hpolytope P = gen_cube<Hpolytope>(1, false);
 
@@ -287,7 +287,7 @@ void test_rk4_constrained(){
     RKODESolver<Point, NT, Hpolytope, func> rk_solver =
       RKODESolver<Point, NT, Hpolytope, func>(0, 0.01, pts{x0}, F, Ks);
 
-    check_norm(rk_solver, 1000, NT(1));
+    check_norm(rk_solver, 1000, NT(1), 1e-2);
 }
 
 template <typename NT>
