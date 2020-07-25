@@ -37,15 +37,17 @@ void check_ergodic_mean_norm(
     Point &mean,
     unsigned int dim,
     int n_samples=1500,
+    int skip_samples=750,
     NT target=NT(0),
-    NT tol=1e-3) {
-
+    NT tol=1e-2) {
 
   auto start = std::chrono::high_resolution_clock::now();
 
   for (int i = 0; i < n_samples; i++) {
     sampler.apply(rng, 1);
-    mean = mean + sampler.x;
+    if (i >= skip_samples) {
+      mean = mean + sampler.x;
+    }
 
     #ifdef VOLESTI_DEBUG
       std::cout << sampler.x.getCoefficients().transpose() << std::endl;
@@ -56,7 +58,7 @@ void check_ergodic_mean_norm(
 
   long ETA = (long) std::chrono::duration_cast<std::chrono::microseconds>(stop - start).count();
 
-  mean = (1.0 / n_samples) * mean;
+  mean = (1.0 / (n_samples - skip_samples)) * mean;
 
   NT error = abs(NT(sqrt(mean.dot(mean))) - target);
 
@@ -100,7 +102,7 @@ void test_hmc(){
       hmc(&P, x0, F, f, hmc_params);
 
     Point mean(dim);
-    check_ergodic_mean_norm(hmc, rng, mean, dim, 50000, NT(0));
+    check_ergodic_mean_norm(hmc, rng, mean, dim, 1500, 750, NT(0));
 }
 
 
@@ -133,7 +135,7 @@ void test_uld(){
       uld(&P, x0, F, f, hmc_params);
 
     Point mean(dim);
-    check_ergodic_mean_norm(uld, rng, mean, dim, 50000, NT(0));
+    check_ergodic_mean_norm(uld, rng, mean, dim, 1500, 750, NT(0));
 
 }
 
