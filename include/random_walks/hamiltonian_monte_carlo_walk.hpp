@@ -168,6 +168,11 @@ struct HamiltonianMonteCarloWalk {
     inline NT hamiltonian(Point &pos, Point &vel) const {
       return f(pos) + 0.5 * vel.dot(vel);
     }
+    //
+    // ~Walk() {
+    //   delete solver->bounds[0];
+    //   delete sovlver;
+    // }
   };
 };
 
