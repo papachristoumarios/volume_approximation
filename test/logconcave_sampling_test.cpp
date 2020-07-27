@@ -151,7 +151,7 @@ void benchmark_hmc(){
     HamiltonianMonteCarloWalk::parameters<NT> hmc_params;
     unsigned int dim_min = 1;
     unsigned int dim_max = 100;
-    int n_samples = 100;
+    int n_samples = 1000;
 
     for (unsigned int dim = dim_min; dim <= dim_max; dim++) {
       Hpolytope P = gen_cube<Hpolytope>(dim, false);
