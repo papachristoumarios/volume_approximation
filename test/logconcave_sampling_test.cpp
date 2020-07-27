@@ -164,7 +164,7 @@ void benchmark_hmc(){
       for (int i = 0; i < n_samples; i++) hmc.apply(rng, 1);
       auto stop = std::chrono::high_resolution_clock::now();
 
-      long ETA = (long) std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start).count();
+      long ETA = (long) std::chrono::duration_cast<std::chrono::microseconds>(stop - start).count();
       std::cout << ETA << std::endl;
     }
 
