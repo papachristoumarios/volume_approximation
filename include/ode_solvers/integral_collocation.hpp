@@ -149,6 +149,8 @@ struct IntegralCollocationODESolver {
     xs_prev = xs;
     initialize_fixed_point();
 
+    std::vector<chebyshev_transform_boost> transforms;
+
     X = X0;
     X_prev = 100 * X0;
     NT err;
@@ -187,15 +189,41 @@ struct IntegralCollocationODESolver {
       for (unsigned int j = i * dim; j < (i + 1) * dim; j++) {
         lagrange_poly.set_coeffs(F_op.row(j).transpose());
         chebyshev_transform_boost transform(lagrange_poly, 0, eta, 1e-5, 5);
+        transforms.push_back(transform);
         X_op(j) += NT(transform.integrate());
       }
     }
 
+
     for (unsigned int i = 0; i < xs.size(); i++) {
-      for (unsigned int j = i * dim; j < (i + 1) * dim; j++) {
-        xs[i].set_coord(j % dim, X_op(j));
+      if (Ks[i] == NULL) {
+        for (unsigned int j = i * dim; j < (i + 1) * dim; j++) {
+          xs[i].set_coord(j % dim, X_op(j));
+        }
       }
+      else {
+        // Store chebyshev transform
+        pts temp_pts;
+        std::vector<NT>& temp_coeffs;
+
+        // Store transformation to polynomial
+        pts transformed_pts;
+
+        // Invoke chebyshev transform coefficients
+        // Precomputed from the final step of the fixed point iterator
+        for (unsigned int j = i * dim; j < (i + 1) * dim; j++) {
+          temp_coeffs = transforms[j].coefficients();
+          for (unsigned int k = 0; k < temp_coeffs.size(); k++) {
+            temp_pts[j].set_coord(k, temp_coeffs[k]);
+          }
+
+        }
+
+      }
+
     }
+
+
 
   }
 
