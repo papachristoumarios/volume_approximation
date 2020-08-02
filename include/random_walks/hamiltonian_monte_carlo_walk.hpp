@@ -20,34 +20,22 @@ struct HamiltonianMonteCarloWalk {
 
   template
   <
-    typename NT
+    typename NT,
+    typename OracleFunctor
   >
   struct parameters {
-    NT L; // smoothness constant
-    NT m; // strong-convexity constant
     NT epsilon; // tolerance in mixing
     NT eta; // step size
-    NT kappa; // condition number
-
-    parameters() :
-      L(NT(1)),
-      m(NT(1)),
-      epsilon(NT(1e-4)),
-      eta(NT(0)),
-      kappa(NT(1))
-    {}
 
     parameters(
-      NT L_,
-      NT m_,
-      NT epsilon_,
-      NT eta_) :
-      L(L_),
-      m(m_),
-      epsilon(epsilon_),
-      eta(eta_),
-      kappa(L_ / m_)
-    {}
+      OracleFunctor const& F,
+      unsigned int dim,
+      NT epsilon_=1e-4)
+    {
+      epsilon = epsilon_;
+      eta = 1.0 /
+        (sqrt(20 * F.params.L * pow(dim, 3)) * log(F.params.kappa / epsilon));
+    }
   };
 
   template
@@ -66,7 +54,7 @@ struct HamiltonianMonteCarloWalk {
     typedef std::vector<Polytope*> bounds;
 
     // Hyperparameters of the sampler
-    parameters<NT> params;
+    parameters<NT, neg_gradient_func> &params;
 
     // Numerical ODE solver
     Solver *solver;
@@ -93,24 +81,18 @@ struct HamiltonianMonteCarloWalk {
       Point &p,
       neg_gradient_func neg_grad_f,
       neg_logprob_func density_exponent,
-      parameters<NT> &param)
+      parameters<NT, neg_gradient_func> param) :
+      params(param)
     {
-      initialize(P, p, neg_grad_f, density_exponent, param);
+      initialize(P, p, neg_grad_f, density_exponent);
     }
 
     void initialize(Polytope *P,
       Point &p,
       neg_gradient_func neg_grad_f,
-      neg_logprob_func density_exponent,
-      parameters<NT> &param)
+      neg_logprob_func density_exponent)
     {
       dim = p.dimension();
-
-      // ODE related-stuff
-      params = param;
-      params.kappa = params.L / params.m;
-      params.eta = 1.0 /
-        (sqrt(20 * params.L * pow(dim, 3)));
 
       // Set order to 2
       F = neg_grad_f;

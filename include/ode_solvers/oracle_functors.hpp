@@ -20,12 +20,24 @@ struct IsotropicQuadraticFunctor {
   struct parameters {
     NT alpha;
     unsigned int order;
+    NT L; // Lipschitz constant of gradient
+    NT m; // Strong-convexity parameter
+    NT kappa; // Condition number
 
-    parameters() : alpha(NT(1)), order(1) {};
+    parameters() :
+      alpha(NT(1)),
+      order(1),
+      L(NT(1)),
+      m(NT(1)),
+      kappa(1)
+     {};
 
     parameters(NT alpha_, unsigned int order_) :
       alpha(alpha_),
-      order(order_)
+      order(order_),
+      L(alpha_),
+      m(alpha_),
+      kappa(1)
     {}
   };
 
@@ -41,10 +53,7 @@ struct IsotropicQuadraticFunctor {
 
     GradientFunctor() {};
 
-    GradientFunctor(parameters<NT> &params_) {
-      params.order = params_.order;
-      params.alpha = params_.alpha;
-    };
+    GradientFunctor(parameters<NT> params_) : params(params_) {};
 
     // The index i represents the state vector index
     Point operator() (unsigned int const& i, pts const& xs, NT const& t) const {
@@ -91,12 +100,24 @@ struct IsotropicLinearFunctor {
   struct parameters {
     NT alpha;
     unsigned int order;
+    NT L; // Lipschitz constant of gradient
+    NT m; // Strong-convexity constant
+    NT kappa; // Condition number
 
-    parameters() : alpha(NT(1)), order(1) {};
+    parameters() :
+      alpha(NT(1)),
+      order(1),
+      L(0),
+      m(0),
+      kappa(1)
+     {};
 
     parameters(NT alpha_, unsigned int order_) :
       alpha(alpha_),
-      order(order)
+      order(order),
+      L(0),
+      m(0),
+      kappa(1)
     {}
   };
 
@@ -112,10 +133,7 @@ struct IsotropicLinearFunctor {
 
     GradientFunctor() {};
 
-    GradientFunctor(parameters<NT> &params_) {
-      params.order = params_.order;
-      params.alpha = params_.alpha;
-    };
+    GradientFunctor(parameters<NT> params_) : params(params_) {};
 
     // The index i represents the state vector index
     Point operator() (unsigned int const& i, pts const& xs, NT const& t) const {
@@ -141,10 +159,7 @@ struct IsotropicLinearFunctor {
 
     FunctionFunctor() {};
 
-    FunctionFunctor(parameters<NT> &params_) {
-      params.order = params_.order;
-      params.alpha = params_.alpha;
-    };
+    FunctionFunctor(parameters<NT> params_) : params(params_) {};
 
     // The index i represents the state vector index
     NT operator() (Point const& x) const {

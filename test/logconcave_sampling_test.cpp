@@ -38,11 +38,17 @@ struct CustomFunctor {
   >
   struct parameters {
     unsigned int order;
+    NT L; // Lipschitz constant for gradient
+    NT m; // Strong convexity constant
+    NT kappa; // Condition number
 
-    parameters() : order(2) {};
+    parameters() : order(2), L(2), m(2), kappa(1) {};
 
     parameters(unsigned int order_) :
-      order(order)
+      order(order),
+      L(2),
+      m(2),
+      kappa(1)
     {}
   };
 
@@ -148,7 +154,6 @@ void benchmark_hmc(){
     neg_gradient_func F;
     neg_logprob_func f;
     RandomNumberGenerator rng(1);
-    HamiltonianMonteCarloWalk::parameters<NT> hmc_params;
     unsigned int dim_min = 1;
     unsigned int dim_max = 100;
     int n_samples = 1000;
@@ -156,6 +161,7 @@ void benchmark_hmc(){
     for (unsigned int dim = dim_min; dim <= dim_max; dim++) {
       Hpolytope P = gen_cube<Hpolytope>(dim, false);
       Point x0(dim);
+      HamiltonianMonteCarloWalk::parameters<NT, neg_gradient_func> hmc_params(F, dim);
       HamiltonianMonteCarloWalk::Walk
       <Point, Hpolytope, RandomNumberGenerator, neg_gradient_func, neg_logprob_func, Solver>
       hmc(&P, x0, F, f, hmc_params);
@@ -188,8 +194,8 @@ void test_hmc(){
     neg_logprob_func f(params);
 
     RandomNumberGenerator rng(1);
-    HamiltonianMonteCarloWalk::parameters<NT> hmc_params;
-    unsigned int dim = 5;
+    unsigned int dim = 10;
+    HamiltonianMonteCarloWalk::parameters<NT, neg_gradient_func> hmc_params(F, dim);
     Hpolytope P = gen_cube<Hpolytope>(dim, false);
     Point x0(dim);
 
@@ -221,14 +227,14 @@ void test_uld(){
     neg_logprob_func f(params);
 
     RandomNumberGenerator rng(1);
-    UnderdampedLangevinWalk::parameters<NT> hmc_params;
     unsigned int dim = 5;
+    UnderdampedLangevinWalk::parameters<NT, neg_gradient_func> uld_params(F, dim);
     Hpolytope P = gen_cube<Hpolytope>(dim, false);
     Point x0(dim);
 
     UnderdampedLangevinWalk::Walk
       <Point, Hpolytope, RandomNumberGenerator, neg_gradient_func, neg_logprob_func>
-      uld(&P, x0, F, f, hmc_params);
+      uld(&P, x0, F, f, uld_params);
 
     Point mean(dim);
     check_ergodic_mean_norm(uld, rng, mean, dim, 75000, 37500, NT(0));

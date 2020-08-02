@@ -202,22 +202,25 @@ struct IntegralCollocationODESolver {
         }
       }
       else {
-        // Store chebyshev transform
-        pts temp_pts;
-        std::vector<NT>& temp_coeffs;
-
-        // Store transformation to polynomial
-        pts transformed_pts;
-
-        // Invoke chebyshev transform coefficients
-        // Precomputed from the final step of the fixed point iterator
-        for (unsigned int j = i * dim; j < (i + 1) * dim; j++) {
-          temp_coeffs = transforms[j].coefficients();
-          for (unsigned int k = 0; k < temp_coeffs.size(); k++) {
-            temp_pts[j].set_coord(k, temp_coeffs[k]);
-          }
-
-        }
+        throw true;
+        // TODO Implement oracle. It requires doing chebyshev transforms
+        // with the same #of points at each dimension
+        // // Store chebyshev transform
+        // pts temp_pts;
+        // std::vector<NT>& temp_coeffs;
+        //
+        // // Store transformation to polynomial
+        // pts transformed_pts;
+        //
+        // // Invoke chebyshev transform coefficients
+        // // Precomputed from the final step of the fixed point iterator
+        // for (unsigned int j = i * dim; j < (i + 1) * dim; j++) {
+        //   temp_coeffs = transforms[j].coefficients();
+        //   for (unsigned int k = 0; k < temp_coeffs.size(); k++) {
+        //     temp_pts[j].set_coord(k, temp_coeffs[k]);
+        //   }
+        //
+        // }
 
       }
 

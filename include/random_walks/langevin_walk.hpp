@@ -18,37 +18,26 @@ struct UnderdampedLangevinWalk {
 
   template
   <
-    typename NT
+    typename NT,
+    typename OracleFunctor
   >
   struct parameters {
-    NT L; // smoothness constant
-    NT m; // strong-convexity constant
     NT epsilon; // tolerance in mixing
     NT eta; // step size
-    NT kappa; // condition number
-    NT u; // inverse L
-
-    parameters() :
-      L(NT(1)),
-      m(NT(1)),
-      epsilon(NT(1e-4)),
-      eta(NT(0)),
-      kappa(NT(1)),
-      u(NT(1))
-    {}
-
+    NT u;
     parameters(
-      NT L_,
-      NT m_,
-      NT epsilon_,
-      NT eta_) :
-      L(L_),
-      m(m_),
-      epsilon(epsilon_),
-      eta(eta_),
-      kappa(L_ / m_),
-      u(1.0 / L_)
-    {}
+      OracleFunctor const& F,
+      unsigned int dim,
+      NT epsilon_=1e-4)
+    {
+      epsilon = epsilon_;
+      u = 1.0 / F.params.L;
+      eta = std::min(pow(epsilon, 1.0 / 3) /
+                            pow(F.params.kappa, 1.0 / 6) *
+                            pow(log(1.0 / epsilon), - 1.0 / 6),
+                            pow(epsilon, 2.0 / 3) *
+                            pow(log(1.0 / epsilon), - 1.0 / 3));
+    }
   };
 
   template
@@ -66,7 +55,7 @@ struct UnderdampedLangevinWalk {
     typedef std::vector<Polytope*> bounds;
     typedef RandomizedMipointSDESolver<Point, NT, Polytope, neg_gradient_func, RandomNumberGenerator> Solver;
 
-    parameters<NT> params;
+    parameters<NT, neg_gradient_func> &params;
 
     // Numerical ODE solver
     Solver *solver;
@@ -90,29 +79,19 @@ struct UnderdampedLangevinWalk {
       Point &initial_x,
       neg_gradient_func neg_grad_f,
       neg_logprob_func density_exponent,
-      parameters<NT> &param)
+      parameters<NT, neg_gradient_func> param) :
+      params(param)
     {
-      initialize(P, initial_x, neg_grad_f, density_exponent, param);
+      initialize(P, initial_x, neg_grad_f, density_exponent);
     }
 
     void initialize(Polytope *P,
       Point &initial_x,
       neg_gradient_func neg_grad_f,
-      neg_logprob_func density_exponent,
-      parameters<NT> &param)
+      neg_logprob_func density_exponent)
     {
 
       // ODE related-stuff
-      params = param;
-      params.kappa = params.L / params.m;
-      params.u = 1.0 / params.L;
-
-      params.eta = std::min(pow(params.epsilon, 1.0 / 3) /
-                            pow(params.kappa, 1.0 / 6) *
-                            pow(log(1.0 / params.epsilon), - 1.0 / 6),
-                            pow(params.epsilon, 2.0 / 3) *
-                            pow(log(1.0 / params.epsilon), - 1.0 / 3));
-
       F = neg_grad_f;
 
       // Define exp(-f(x)) where f(x) is convex
