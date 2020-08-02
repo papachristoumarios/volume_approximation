@@ -189,7 +189,7 @@ void test_hmc(){
 
     RandomNumberGenerator rng(1);
     HamiltonianMonteCarloWalk::parameters<NT> hmc_params;
-    unsigned int dim = 50;
+    unsigned int dim = 5;
     Hpolytope P = gen_cube<Hpolytope>(dim, false);
     Point x0(dim);
 
@@ -222,7 +222,7 @@ void test_uld(){
 
     RandomNumberGenerator rng(1);
     UnderdampedLangevinWalk::parameters<NT> hmc_params;
-    unsigned int dim = 10;
+    unsigned int dim = 5;
     Hpolytope P = gen_cube<Hpolytope>(dim, false);
     Point x0(dim);
 
